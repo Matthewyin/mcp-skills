@@ -23,6 +23,10 @@ export class MermaidGenerator {
       content = this.generateFlowchart(spec);
     } else if (diagramType === 'sequence') {
       content = this.generateSequenceDiagram(spec);
+    } else if (diagramType === 'class') {
+      content = this.generateClassDiagram(spec);
+    } else if (diagramType === 'er') {
+      content = this.generateErDiagram(spec);
     } else {
       content = this.generateFlowchart(spec);
     }
@@ -31,6 +35,16 @@ export class MermaidGenerator {
   }
 
   private inferDiagramType(spec: DiagramSpec): 'flowchart' | 'sequence' | 'class' | 'er' {
+    // 优先读取显式指定的图表类型
+    if (
+      spec.diagramType === 'flowchart' ||
+      spec.diagramType === 'sequence' ||
+      spec.diagramType === 'class' ||
+      spec.diagramType === 'er'
+    ) {
+      return spec.diagramType;
+    }
+
     const nodes = spec.elements.filter(e => e.type === 'node') as Node[];
     const hasDiamond = nodes.some(n => n.shape === 'diamond');
 
@@ -48,6 +62,10 @@ export class MermaidGenerator {
     const containers = spec.elements.filter(e => e.type === 'container');
     const nodes = spec.elements.filter(e => e.type === 'node') as Node[];
     const edges = spec.elements.filter(e => e.type === 'edge') as Edge[];
+
+    for (const node of nodes) {
+      this.applyFlowchartNodeDefaults(node);
+    }
 
     // 收集所有唯一样式并生成 classDef
     const allElements = [...containers, ...nodes];
@@ -201,16 +219,38 @@ export class MermaidGenerator {
   private generateSequenceDiagram(spec: DiagramSpec): string {
     const nodes = spec.elements.filter(e => e.type === 'node') as Node[];
     const edges = spec.elements.filter(e => e.type === 'edge') as Edge[];
+    const nodesById = new Map(nodes.map(node => [node.id, node]));
+    const participantIds: string[] = [];
 
-    const participants = nodes.map(n => `  participant ${this.formatId(n.id)} as "${n.name}"`).join('\n');
-    const messages = edges.map(e => `  ${this.formatId(e.source)}->>${this.formatId(e.target)}: ${e.label || ''}`).join('\n');
+    const addParticipant = (id: string) => {
+      if (nodesById.has(id) && !participantIds.includes(id)) {
+        participantIds.push(id);
+      }
+    };
+
+    for (const edge of edges) {
+      addParticipant(edge.source);
+      addParticipant(edge.target);
+    }
+
+    for (const node of nodes) {
+      addParticipant(node.id);
+    }
+
+    const participants = participantIds
+      .map(id => {
+        const node = nodesById.get(id)!;
+        return `  participant ${this.formatId(node.id)} as "${this.formatLabel(node.name)}"`;
+      })
+      .join('\n');
+    const messages = edges.map(e => `  ${this.formatId(e.source)}${this.getSequenceArrow(e)}${this.formatId(e.target)}: ${this.formatLabel(e.label || '')}`).join('\n');
 
     return `sequenceDiagram\n${participants}\n${messages}`;
   }
 
   private formatNode(node: Node): string {
     const id = this.formatId(node.id);
-    const label = node.name;
+    const label = this.formatLabel(node.name);
 
     const shapeMap: Record<ShapeType, [string, string]> = {
       rect: ['[', ']'],
@@ -255,5 +295,142 @@ export class MermaidGenerator {
     return label
       .replace(/"/g, '&quot;')
       .replace(/\n/g, '<br/>');
+  }
+
+  private applyFlowchartNodeDefaults(node: Node): void {
+    if (node.shape) return;
+
+    if (this.isFlowchartStartNode(node) || this.isFlowchartEndNode(node)) {
+      node.shape = 'rounded';
+      return;
+    }
+
+    if (this.isFlowchartDecisionNode(node)) {
+      node.shape = 'diamond';
+    }
+  }
+
+  private isFlowchartStartNode(node: Node): boolean {
+    const text = `${node.id} ${node.name}`.toLowerCase();
+    return this.includesAny(text, ['start', '开始', '发起']);
+  }
+
+  private isFlowchartEndNode(node: Node): boolean {
+    const text = `${node.id} ${node.name}`.toLowerCase();
+    return this.includesAny(text, ['end', '结束', '完成', '终止']);
+  }
+
+  private isFlowchartDecisionNode(node: Node): boolean {
+    const text = `${node.id} ${node.name}`.toLowerCase();
+    return this.includesAny(text, ['?', '是否', '判断', '审批', '审核', '校验', '验证', '通过']);
+  }
+
+  private includesAny(text: string, values: string[]): boolean {
+    return values.some(value => text.includes(value));
+  }
+
+  private generateClassDiagram(spec: DiagramSpec): string {
+    let content = 'classDiagram\n\n';
+    const nodes = spec.elements.filter(e => e.type === 'node') as Node[];
+    const edges = spec.elements.filter(e => e.type === 'edge') as Edge[];
+
+    for (const node of nodes) {
+      const id = this.formatId(node.id);
+      content += `  class ${id} {\n`;
+      for (const field of node.fields || []) {
+        content += `    ${field}\n`;
+      }
+      for (const method of node.methods || []) {
+        content += `    ${method}\n`;
+      }
+      content += `  }\n`;
+      if (node.name && node.name !== node.id) {
+        content += `  class ${id}["${this.formatLabel(node.name)}"]\n`;
+      }
+    }
+
+    content += '\n';
+
+    for (const edge of edges) {
+      const source = this.formatId(edge.source);
+      const target = this.formatId(edge.target);
+      const relation = this.getClassRelation(edge);
+
+      const label = edge.label ? ` : ${this.formatLabel(edge.label)}` : '';
+      content += `  ${source} ${relation} ${target}${label}\n`;
+    }
+
+    return content;
+  }
+
+  private generateErDiagram(spec: DiagramSpec): string {
+    let content = 'erDiagram\n\n';
+    const nodes = spec.elements.filter(e => e.type === 'node') as Node[];
+    const edges = spec.elements.filter(e => e.type === 'edge') as Edge[];
+
+    for (const node of nodes) {
+      const id = this.formatId(node.id);
+      content += `  ${id} {\n`;
+      for (const field of node.fields || []) {
+        content += `    ${field}\n`;
+      }
+      content += `  }\n`;
+    }
+
+    content += '\n';
+
+    for (const edge of edges) {
+      const source = this.formatId(edge.source);
+      const target = this.formatId(edge.target);
+      const relation = this.getErRelation(edge);
+      const label = edge.label ? ` : "${this.formatLabel(edge.label)}"` : ' : "relates"';
+      content += `  ${source} ${relation} ${target}${label}\n`;
+    }
+
+    return content;
+  }
+
+  private getClassRelation(edge: Edge): string {
+    const relationMap: Record<string, string> = {
+      association: '-->',
+      inheritance: '<|--',
+      composition: '*--',
+      aggregation: 'o--',
+      dependency: '..>',
+      realization: '..|>'
+    };
+
+    if (edge.relation && relationMap[edge.relation]) {
+      return relationMap[edge.relation];
+    }
+
+    if (edge.style?.endArrow === 'diamond') return '*--';
+    if (edge.style?.endArrow === 'circle') return 'o--';
+    if (edge.style?.lineStyle === 'curved') return '<|--';
+    if (edge.style?.dashPattern) return '..>';
+    return '-->';
+  }
+
+  private getErRelation(edge: Edge): string {
+    const relationMap: Record<string, string> = {
+      oneToOne: '||--||',
+      oneToMany: '||--o{',
+      manyToOne: '}o--||',
+      manyToMany: '}o--o{',
+      zeroOrOneToMany: '|o--o{'
+    };
+
+    if (edge.relation && relationMap[edge.relation]) {
+      return relationMap[edge.relation];
+    }
+
+    if (edge.style?.endArrow === 'none') return '||--||';
+    return '||--o{';
+  }
+
+  private getSequenceArrow(edge: Edge): string {
+    if (edge.relation === 'return') return '-->>';
+    if (edge.relation === 'async') return '-)';
+    return '->>';
   }
 }

@@ -142,7 +142,7 @@ Start
 | Class Diagram | **Mermaid** | Draw.io |
 | ER Diagram | **Mermaid** | Draw.io |
 | Mindmap | **Mermaid** | Excalidraw (for hand-drawn) |
-| Network Topology | **Draw.io** (required) | - |
+| Network Topology | **Draw.io** | Excalidraw for whiteboard-style topology when explicitly requested |
 | System Architecture | **Draw.io** | Mermaid (for high-level) |
 | Whiteboard Sketch | **Excalidraw** | Draw.io (formal) |
 | Brainstorming | **Excalidraw** | Mermaid (structured) |

@@ -1,0 +1,11 @@
+{
+  "mcpServers": {
+    "mcp-diagram-generator": {
+      "command": "npx",
+      "args": [
+        "-y",
+        "mcp-diagram-generator"
+      ]
+    }
+  }
+}

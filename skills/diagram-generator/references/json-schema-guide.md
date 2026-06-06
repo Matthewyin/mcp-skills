@@ -1,140 +1,45 @@
 # JSON Schema Guide
 
-Complete schema for diagram specification passed to `mcp-diagram-generator` MCP server.
+This guide describes the JSON specification passed to the `mcp-diagram-generator` MCP server.
 
-## Root Schema
+## Root Object
 
 ```json
 {
-  "$schema": "http://json-schema.org/draft-07/schema#",
-  "type": "object",
-  "required": ["format", "elements"],
-  "properties": {
-    "format": {
-      "type": "string",
-      "enum": ["drawio", "mermaid", "excalidraw"],
-      "description": "Target diagram format"
-    },
-    "title": {
-      "type": "string",
-      "description": "Diagram title (used as page name in drawio, or header in other formats)"
-    },
-    "elements": {
-      "type": "array",
-      "items": {"$ref": "#/definitions/element"},
-      "description": "All diagram elements (containers, nodes, edges)"
-    }
-  },
-  "definitions": {
-    "element": {
-      "oneOf": [
-        {"$ref": "#/definitions/container"},
-        {"$ref": "#/definitions/node"},
-        {"$ref": "#/definitions/edge"}
-      ]
-    },
-    "container": {
-      "type": "object",
-      "required": ["id", "type", "name"],
-      "properties": {
-        "id": {"type": "string", "pattern": "^[a-zA-Z0-9_-]+$"},
-        "type": {"const": "container"},
-        "name": {"type": "string"},
-        "level": {
-          "type": "string",
-          "enum": ["environment", "datacenter", "zone", "other"],
-          "description": "Hierarchy level (for network topology)"
-        },
-        "style": {"$ref": "#/definitions/style"},
-        "geometry": {"$ref": "#/definitions/geometry"},
-        "children": {
-          "type": "array",
-          "items": {"$ref": "#/definitions/element"}
-        }
-      }
-    },
-    "node": {
-      "type": "object",
-      "required": ["id", "type", "name"],
-      "properties": {
-        "id": {"type": "string", "pattern": "^[a-zA-Z0-9_-]+$"},
-        "type": {"const": "node"},
-        "name": {"type": "string"},
-        "deviceType": {
-          "type": "string",
-          "enum": ["router", "switch", "firewall", "server", "pc", "database", "cloud", "other"],
-          "description": "Device type (for network topology styling)"
-        },
-        "shape": {
-          "type": "string",
-          "enum": ["rect", "ellipse", "diamond", "parallelogram", "rounded", "cylinder", "cloud", "other"],
-          "description": "Node shape (for flowcharts)"
-        },
-        "style": {"$ref": "#/definitions/style"},
-        "geometry": {"$ref": "#/definitions/geometry"}
-      }
-    },
-    "edge": {
-      "type": "object",
-      "required": ["type", "source", "target"],
-      "properties": {
-        "id": {"type": "string", "pattern": "^[a-zA-Z0-9_-]+$"},
-        "type": {"const": "edge"},
-        "source": {"type": "string", "description": "Source node ID"},
-        "target": {"type": "string", "description": "Target node ID"},
-        "label": {"type": "string", "description": "Edge label"},
-        "style": {"$ref": "#/definitions/edgeStyle"}
-      }
-    },
-    "style": {
-      "type": "object",
-      "properties": {
-        "fillColor": {"type": "string", "pattern": "^#[0-9A-Fa-f]{6}$"},
-        "strokeColor": {"type": "string", "pattern": "^#[0-9A-Fa-f]{6}$"},
-        "strokeWidth": {"type": "number", "minimum": 0},
-        "fontColor": {"type": "string", "pattern": "^#[0-9A-Fa-f]{6}$"},
-        "fontSize": {"type": "number", "minimum": 6},
-        "fontStyle": {"type": "string", "enum": ["normal", "bold", "italic"]},
-        "borderRadius": {"type": "number", "minimum": 0},
-        "dashPattern": {"type": "string", "description": "e.g., '5,5' for dashed line"}
-      }
-    },
-    "edgeStyle": {
-      "type": "object",
-      "properties": {
-        "strokeColor": {"type": "string", "pattern": "^#[0-9A-Fa-f]{6}$"},
-        "strokeWidth": {"type": "number", "minimum": 0},
-        "endArrow": {"type": "string", "enum": ["none", "arrow", "circle", "diamond"]},
-        "startArrow": {"type": "string", "enum": ["none", "arrow", "circle", "diamond"]},
-        "dashPattern": {"type": "string", "description": "e.g., '5,5' for dashed line"},
-        "lineStyle": {"type": "string", "enum": ["straight", "orthogonal", "curved"]}
-      }
-    },
-    "geometry": {
-      "type": "object",
-      "required": ["x", "y"],
-      "properties": {
-        "x": {"type": "number"},
-        "y": {"type": "number"},
-        "width": {"type": "number", "minimum": 10},
-        "height": {"type": "number", "minimum": 10}
-      }
-    }
-  }
+  "format": "drawio",
+  "diagramType": "flowchart",
+  "title": "Diagram title",
+  "elements": [],
+  "layers": [],
+  "lanes": []
 }
 ```
 
-## Common Element Types
+Required fields:
+- `format`
+- `elements`
 
-### Container (for nested structures)
+Optional semantic fields:
+- `diagramType`: `flowchart`, `sequence`, `class`, `er`, `architecture`, or `swimlane`
+- `layers`: used by architecture diagrams
+- `lanes`: used by swimlane diagrams
 
-Used for environments, datacenters, zones, or any grouping.
+## Element Types
+
+Each entry in `elements` is one of:
+- `container`
+- `node`
+- `edge`
+
+Edges must stay at the top level of `elements`. Do not put edges inside container `children`.
+
+## Container
 
 ```json
 {
-  "id": "env-1",
+  "id": "env-prod",
   "type": "container",
-  "name": "省中心管理端",
+  "name": "Production Network",
   "level": "environment",
   "style": {
     "fillColor": "#e1d5e7",
@@ -143,59 +48,323 @@ Used for environments, datacenters, zones, or any grouping.
     "fontStyle": "bold"
   },
   "geometry": {
-    "x": 220,
-    "y": 750,
-    "width": 520,
-    "height": 450
+    "x": 40,
+    "y": 40,
+    "width": 1200,
+    "height": 800
   },
-  "children": [...]
+  "children": []
 }
 ```
 
-### Node (individual elements)
+Container fields:
+- `id`: unique element ID
+- `type`: always `container`
+- `name`: displayed label
+- `level`: `environment`, `datacenter`, `zone`, or `other`
+- `style`: optional style object
+- `geometry`: required for high-quality Draw.io or Excalidraw output
+- `children`: nested containers or nodes
 
-Used for devices, components, steps, etc.
+## Node
 
 ```json
 {
-  "id": "device-1",
+  "id": "router-a",
   "type": "node",
-  "name": "路由器1",
+  "name": "Router A",
   "deviceType": "router",
+  "shape": "ellipse",
+  "fields": [],
+  "methods": [],
   "style": {
-    "fillColor": "none",
-    "strokeColor": "#607D8B",
+    "fillColor": "#DBEAFE",
+    "strokeColor": "#2563EB",
     "strokeWidth": 2,
-    "fontColor": "#455A64",
-    "fontSize": 12,
+    "fontColor": "#1E3A8A",
+    "fontSize": 20,
     "fontStyle": "bold"
   },
   "geometry": {
-    "x": 8,
-    "y": 25,
-    "width": 55,
-    "height": 25
+    "x": 40,
+    "y": 80,
+    "width": 160,
+    "height": 70
   }
 }
 ```
 
-### Edge (connections)
+Node fields:
+- `id`: unique element ID
+- `type`: always `node`
+- `name`: displayed label
+- `deviceType`: optional visual preset or semantic component type
+- `shape`: `rect`, `ellipse`, `diamond`, `parallelogram`, `rounded`, `cylinder`, `cloud`, or `other`
+- `fields`: class or ER fields
+- `methods`: class methods
+- `style`: optional style object
+- `geometry`: coordinates and size
 
-Used to connect nodes.
+Unknown `deviceType` values are allowed. For example, `deviceType: "DWDM"` should fall back to the default device style instead of failing.
+
+## Edge
 
 ```json
 {
-  "id": "edge-1",
+  "id": "edge-router-firewall",
   "type": "edge",
-  "source": "device-1",
-  "target": "device-2",
-  "label": "专线连接",
+  "source": "router-a",
+  "target": "firewall-a",
+  "label": "uplink",
+  "relation": "association",
   "style": {
-    "strokeColor": "#FF3333",
+    "strokeColor": "#333333",
     "strokeWidth": 2,
     "endArrow": "arrow",
     "lineStyle": "straight"
   }
+}
+```
+
+Edge fields:
+- `id`: optional unique edge ID
+- `type`: always `edge`
+- `source`: source node or container ID
+- `target`: target node or container ID
+- `label`: optional edge label
+- `relation`: semantic relationship for Mermaid class, ER, and sequence diagrams
+- `style`: optional edge style
+
+## Relation Values
+
+Class diagrams:
+- `association`
+- `inheritance`
+- `composition`
+- `aggregation`
+- `dependency`
+- `realization`
+
+ER diagrams:
+- `oneToOne`
+- `oneToMany`
+- `manyToOne`
+- `manyToMany`
+- `zeroOrOneToMany`
+
+Sequence diagrams:
+- `sync`
+- `async`
+- `return`
+
+## Style
+
+```json
+{
+  "fillColor": "#FFFFFF",
+  "strokeColor": "#333333",
+  "strokeWidth": 2,
+  "fontColor": "#000000",
+  "fontSize": 20,
+  "fontStyle": "bold",
+  "borderRadius": 8,
+  "dashPattern": "5,5"
+}
+```
+
+Rules:
+- Use `#RRGGBB` colors.
+- Use `fillColor: "none"` for Draw.io no-fill nodes when needed.
+- `style` must be an object, not a string.
+
+## Edge Style
+
+```json
+{
+  "strokeColor": "#333333",
+  "strokeWidth": 2,
+  "endArrow": "arrow",
+  "startArrow": "none",
+  "dashPattern": "5,5",
+  "lineStyle": "straight"
+}
+```
+
+Supported values:
+- `endArrow` and `startArrow`: `none`, `arrow`, `circle`, `diamond`
+- `lineStyle`: `straight`, `orthogonal`, `curved`
+
+## Geometry
+
+```json
+{
+  "x": 40,
+  "y": 80,
+  "width": 160,
+  "height": 70
+}
+```
+
+Rules:
+- Top-level coordinates are absolute.
+- Child coordinates are relative to the direct parent container.
+- Complex Draw.io and Excalidraw diagrams should use explicit geometry.
+
+## Architecture Input
+
+Prefer `diagramType: "architecture"` with `layers`.
+
+```json
+{
+  "format": "drawio",
+  "diagramType": "architecture",
+  "title": "Platform Architecture",
+  "layers": [
+    {
+      "id": "layer-client",
+      "name": "Client",
+      "components": [
+        { "id": "web", "type": "node", "name": "Web App", "deviceType": "user" }
+      ]
+    },
+    {
+      "id": "layer-access",
+      "name": "Access Layer",
+      "components": [
+        { "id": "api", "type": "node", "name": "API Gateway", "deviceType": "gateway" }
+      ]
+    },
+    {
+      "id": "layer-service",
+      "name": "Service Layer",
+      "components": [
+        { "id": "service", "type": "node", "name": "Business Service", "deviceType": "service" }
+      ]
+    },
+    {
+      "id": "layer-data",
+      "name": "Data Layer",
+      "components": [
+        { "id": "db", "type": "node", "name": "Database", "deviceType": "database" },
+        { "id": "cache", "type": "node", "name": "Cache", "deviceType": "cache" }
+      ]
+    }
+  ],
+  "elements": [
+    { "type": "edge", "source": "web", "target": "api" },
+    { "type": "edge", "source": "api", "target": "service" },
+    { "type": "edge", "source": "service", "target": "db" },
+    { "type": "edge", "source": "service", "target": "cache" }
+  ]
+}
+```
+
+## Swimlane Input
+
+Prefer `diagramType: "swimlane"` with `lanes`.
+
+```json
+{
+  "format": "drawio",
+  "diagramType": "swimlane",
+  "title": "Approval Flow",
+  "lanes": [
+    {
+      "id": "lane-user",
+      "name": "User",
+      "steps": [
+        { "id": "submit", "name": "Submit", "order": 1, "next": ["review"] }
+      ]
+    },
+    {
+      "id": "lane-manager",
+      "name": "Manager",
+      "steps": [
+        { "id": "review", "name": "Review", "order": 2, "next": ["archive"] }
+      ]
+    },
+    {
+      "id": "lane-system",
+      "name": "System",
+      "steps": [
+        { "id": "archive", "name": "Archive", "order": 3 }
+      ]
+    }
+  ],
+  "elements": []
+}
+```
+
+## Flowchart Example
+
+```json
+{
+  "format": "mermaid",
+  "diagramType": "flowchart",
+  "title": "Login Flow",
+  "elements": [
+    { "id": "start", "type": "node", "name": "Start", "shape": "rounded" },
+    { "id": "input", "type": "node", "name": "Enter credentials", "shape": "parallelogram" },
+    { "id": "validate", "type": "node", "name": "Valid?", "shape": "diamond" },
+    { "id": "success", "type": "node", "name": "Login success", "shape": "rounded" },
+    { "id": "error", "type": "node", "name": "Show error" },
+    { "type": "edge", "source": "start", "target": "input" },
+    { "type": "edge", "source": "input", "target": "validate" },
+    { "type": "edge", "source": "validate", "target": "success", "label": "success" },
+    { "type": "edge", "source": "validate", "target": "error", "label": "failure" }
+  ]
+}
+```
+
+## Sequence Example
+
+```json
+{
+  "format": "mermaid",
+  "diagramType": "sequence",
+  "title": "API Call Flow",
+  "elements": [
+    { "id": "user", "type": "node", "name": "User" },
+    { "id": "frontend", "type": "node", "name": "Frontend" },
+    { "id": "api", "type": "node", "name": "API Service" },
+    { "id": "db", "type": "node", "name": "Database" },
+    { "type": "edge", "source": "user", "target": "frontend", "label": "Click login", "relation": "sync" },
+    { "type": "edge", "source": "frontend", "target": "api", "label": "POST /login", "relation": "sync" },
+    { "type": "edge", "source": "api", "target": "db", "label": "Query user", "relation": "sync" },
+    { "type": "edge", "source": "db", "target": "api", "label": "User data", "relation": "return" }
+  ]
+}
+```
+
+## Class Example
+
+```json
+{
+  "format": "mermaid",
+  "diagramType": "class",
+  "title": "Order Class Model",
+  "elements": [
+    { "id": "entity", "type": "node", "name": "Entity", "fields": ["+String id"], "methods": ["+validate()"] },
+    { "id": "order", "type": "node", "name": "Order", "fields": ["+String orderNo", "+Money amount"], "methods": ["+pay()"] },
+    { "id": "orderItem", "type": "node", "name": "OrderItem", "fields": ["+String sku", "+int quantity"] },
+    { "type": "edge", "source": "entity", "target": "order", "relation": "inheritance" },
+    { "type": "edge", "source": "order", "target": "orderItem", "relation": "composition", "label": "items" }
+  ]
+}
+```
+
+## ER Example
+
+```json
+{
+  "format": "mermaid",
+  "diagramType": "er",
+  "title": "Order ER Model",
+  "elements": [
+    { "id": "customer", "type": "node", "name": "CUSTOMER", "fields": ["int id PK", "string name"] },
+    { "id": "orders", "type": "node", "name": "ORDERS", "fields": ["int id PK", "int customer_id FK", "datetime created_at"] },
+    { "type": "edge", "source": "customer", "target": "orders", "relation": "oneToMany", "label": "places" }
+  ]
 }
 ```
 
@@ -204,278 +373,72 @@ Used to connect nodes.
 ```json
 {
   "format": "drawio",
-  "title": "新架构",
+  "title": "Management Network Topology",
   "elements": [
     {
-      "id": "env-1",
+      "id": "env-management",
       "type": "container",
-      "name": "省中心管理端",
+      "name": "Management Network",
       "level": "environment",
-      "style": {
-        "fillColor": "#e1d5e7",
-        "strokeColor": "#9673a6",
-        "fontSize": 14,
-        "fontStyle": "bold"
-      },
-      "geometry": {"x": 220, "y": 750, "width": 520, "height": 450},
+      "geometry": { "x": 40, "y": 40, "width": 700, "height": 420 },
       "children": [
         {
-          "id": "dc-1",
+          "id": "dc-primary",
           "type": "container",
-          "name": "省中心机房",
+          "name": "Primary Datacenter",
           "level": "datacenter",
-          "style": {
-            "fillColor": "#d5e8d4",
-            "strokeColor": "#82b366",
-            "fontSize": 12,
-            "fontStyle": "bold"
-          },
-          "geometry": {"x": 15, "y": 30, "width": 485, "height": 400},
+          "geometry": { "x": 30, "y": 60, "width": 640, "height": 340 },
           "children": [
             {
-              "id": "zone-1",
+              "id": "zone-uplink",
               "type": "container",
-              "name": "上联区",
+              "name": "Uplink Zone",
               "level": "zone",
-              "style": {
-                "fillColor": "#fff2cc",
-                "strokeColor": "#d6b656",
-                "fontSize": 10,
-                "fontStyle": "bold"
-              },
-              "geometry": {"x": 93.5, "y": 40, "width": 145, "height": 70},
+              "geometry": { "x": 30, "y": 60, "width": 280, "height": 180 },
               "children": [
-                {
-                  "id": "router-1",
-                  "type": "node",
-                  "name": "路由器1",
-                  "deviceType": "router",
-                  "style": {
-                    "fillColor": "none",
-                    "strokeColor": "#607D8B",
-                    "strokeWidth": 2
-                  },
-                  "geometry": {"x": 8, "y": 25, "width": 55, "height": 25}
-                },
-                {
-                  "id": "router-2",
-                  "type": "node",
-                  "name": "路由器2",
-                  "deviceType": "router",
-                  "style": {
-                    "fillColor": "none",
-                    "strokeColor": "#607D8B",
-                    "strokeWidth": 2
-                  },
-                  "geometry": {"x": 68, "y": 25, "width": 55, "height": 25}
-                }
+                { "id": "router-a", "type": "node", "name": "Router A", "deviceType": "router", "geometry": { "x": 40, "y": 70, "width": 120, "height": 60 } },
+                { "id": "router-b", "type": "node", "name": "Router B", "deviceType": "router", "geometry": { "x": 170, "y": 70, "width": 120, "height": 60 } }
               ]
             }
           ]
         }
       ]
     },
-    {
-      "id": "edge-1",
-      "type": "edge",
-      "source": "router-1",
-      "target": "router-2",
-      "style": {
-        "strokeColor": "#333333",
-        "endArrow": "none"
-      }
-    }
-  ]
-}
-```
-
-## Flowchart Example (Mermaid)
-
-```json
-{
-  "format": "mermaid",
-  "title": "用户登录流程",
-  "elements": [
-    {
-      "id": "start",
-      "type": "node",
-      "name": "开始",
-      "shape": "rounded",
-      "geometry": {"x": 200, "y": 0}
-    },
-    {
-      "id": "input",
-      "type": "node",
-      "name": "输入用户名密码",
-      "shape": "parallelogram",
-      "geometry": {"x": 200, "y": 100}
-    },
-    {
-      "id": "validate",
-      "type": "node",
-      "name": "验证",
-      "shape": "diamond",
-      "geometry": {"x": 200, "y": 200}
-    },
-    {
-      "id": "success",
-      "type": "node",
-      "name": "登录成功",
-      "shape": "rounded",
-      "geometry": {"x": 100, "y": 350}
-    },
-    {
-      "id": "error",
-      "type": "node",
-      "name": "显示错误",
-      "shape": "rect",
-      "geometry": {"x": 300, "y": 350}
-    },
-    {
-      "id": "edge-1",
-      "type": "edge",
-      "source": "start",
-      "target": "input"
-    },
-    {
-      "id": "edge-2",
-      "type": "edge",
-      "source": "input",
-      "target": "validate"
-    },
-    {
-      "id": "edge-3",
-      "type": "edge",
-      "source": "validate",
-      "target": "success",
-      "label": "成功"
-    },
-    {
-      "id": "edge-4",
-      "type": "edge",
-      "source": "validate",
-      "target": "error",
-      "label": "失败"
-    }
-  ]
-}
-```
-
-## Sequence Diagram Example (Mermaid)
-
-```json
-{
-  "format": "mermaid",
-  "title": "API调用流程",
-  "elements": [
-    {
-      "id": "user",
-      "type": "node",
-      "name": "用户"
-    },
-    {
-      "id": "frontend",
-      "type": "node",
-      "name": "前端"
-    },
-    {
-      "id": "api",
-      "type": "node",
-      "name": "API服务"
-    },
-    {
-      "id": "db",
-      "type": "node",
-      "name": "数据库"
-    },
-    {
-      "id": "edge-1",
-      "type": "edge",
-      "source": "user",
-      "target": "frontend",
-      "label": "点击登录"
-    },
-    {
-      "id": "edge-2",
-      "type": "edge",
-      "source": "frontend",
-      "target": "api",
-      "label": "POST /login"
-    },
-    {
-      "id": "edge-3",
-      "type": "edge",
-      "source": "api",
-      "target": "db",
-      "label": "查询用户"
-    },
-    {
-      "id": "edge-4",
-      "type": "edge",
-      "source": "db",
-      "target": "api",
-      "label": "返回数据",
-      "style": {
-        "lineStyle": "dashed",
-        "endArrow": "none"
-      }
-    }
+    { "type": "edge", "source": "router-a", "target": "router-b", "style": { "endArrow": "none", "lineStyle": "straight" } }
   ]
 }
 ```
 
 ## Style Presets
 
-### Network Topology Levels
+Network topology levels:
 
-| Level | fillColor | strokeColor | fontSize |
-|-------|-----------|-------------|----------|
-| environment | `#e1d5e7` | `#9673a6` | 14 |
-| datacenter | `#d5e8d4` | `#82b366` | 12 |
-| zone | `#fff2cc` | `#d6b656` | 10 |
+| Level | fillColor | strokeColor |
+| --- | --- | --- |
+| environment | `#e1d5e7` | `#9673a6` |
+| datacenter | `#d5e8d4` | `#82b366` |
+| zone | `#fff2cc` | `#d6b656` |
 
-### Device Types
+Device types:
 
-| deviceType | strokeColor |
-|------------|-------------|
-| router | `#607D8B` |
-| switch | `#4CAF50` |
-| firewall | `#F44336` |
-| server | `#2196F3` |
-| pc | `#607D8B` |
-| database | `#9C27B0` |
-| cloud | `#9E9E9E` |
-
-### Flowchart Shapes
-
-| shape | Usage |
-|-------|-------|
-| `rect` | Process step |
-| `rounded` | Start/end |
-| `parallelogram` | Input/output |
-| `diamond` | Decision |
-| `cylinder` | Database |
-| `cloud` | External system |
+| deviceType | Expected style |
+| --- | --- |
+| `router` | Blue ellipse |
+| `accessSwitch` | `#FFFFCC` fill |
+| `switch` | `#FFFFCC` fill |
+| `coreSwitch` | `#FFFFCC` fill |
+| `firewall` | Red security shape |
+| `loadBalancer` | Purple load balancer |
+| `sslGateway` | Cyan SSL gateway |
+| `proxy` | Blue proxy node |
+| `database` | Database style |
+| `cloud` | Cloud style |
+| `externalSystem` | External system style |
 
 ## Best Practices
 
-### ID Generation
-- Use descriptive prefixes: `env-`, `dc-`, `zone-`, `device-`, `edge-`
-- Keep IDs short but unique: `env-1`, `router-2`
-- Avoid spaces or special characters (except `_`, `-`)
-
-### Geometry for Network Topology
-- Container coordinates are relative to their parent
-- Device coordinates are relative to their containing zone
-- Standard device size: `55` x `25`
-- Leave padding: at least `10` units between elements
-
-### Edge Routing
-- For drawio: source/target can reference any node ID
-- Edges can cross container boundaries
-- Use `lineStyle: "orthogonal"` for clean routing in complex diagrams
-
-### Performance
-- Limit total elements to ~100 for good performance
-- Use containers to group related elements
-- For very large diagrams, split into multiple pages
+- Use descriptive prefixes such as `env-`, `dc-`, `zone-`, `router-`, and `edge-`.
+- Avoid spaces and special characters in IDs except `_` and `-`.
+- Keep total elements reasonable for performance.
+- Split very large diagrams into multiple files or pages when needed.
+- Use containers to group related elements.

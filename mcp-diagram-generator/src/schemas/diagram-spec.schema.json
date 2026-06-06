@@ -10,6 +10,11 @@
       "enum": ["drawio", "mermaid", "excalidraw"],
       "description": "Target diagram format"
     },
+    "diagramType": {
+      "type": "string",
+      "enum": ["flowchart", "sequence", "class", "er", "architecture", "swimlane"],
+      "description": "Target diagram type (optional, auto-inferred if not provided)"
+    },
     "title": {
       "type": "string",
       "description": "Diagram title"
@@ -23,9 +28,55 @@
           { "$ref": "#/definitions/edge" }
         ]
       }
+    },
+    "layers": {
+      "type": "array",
+      "items": { "$ref": "#/definitions/architectureLayer" }
+    },
+    "lanes": {
+      "type": "array",
+      "items": { "$ref": "#/definitions/swimlane" }
     }
   },
   "definitions": {
+    "architectureLayer": {
+      "type": "object",
+      "required": ["id", "name", "components"],
+      "properties": {
+        "id": { "type": "string", "pattern": "^[a-zA-Z0-9_-]+$" },
+        "name": { "type": "string" },
+        "components": {
+          "type": "array",
+          "items": { "$ref": "#/definitions/node" }
+        }
+      }
+    },
+    "swimlane": {
+      "type": "object",
+      "required": ["id", "name", "steps"],
+      "properties": {
+        "id": { "type": "string", "pattern": "^[a-zA-Z0-9_-]+$" },
+        "name": { "type": "string" },
+        "steps": {
+          "type": "array",
+          "items": { "$ref": "#/definitions/swimlaneStep" }
+        }
+      }
+    },
+    "swimlaneStep": {
+      "type": "object",
+      "required": ["id", "name"],
+      "properties": {
+        "id": { "type": "string", "pattern": "^[a-zA-Z0-9_-]+$" },
+        "name": { "type": "string" },
+        "order": { "type": "number" },
+        "deviceType": { "type": "string" },
+        "next": {
+          "type": "array",
+          "items": { "type": "string" }
+        }
+      }
+    },
     "container": {
       "type": "object",
       "required": ["id", "type", "name"],
@@ -65,11 +116,21 @@
         "name": { "type": "string" },
         "deviceType": {
           "type": "string",
-          "enum": ["router", "switch", "firewall", "server", "pc", "database", "cloud", "other"]
+          "description": "Known presets get standard styles. Unknown values fall back to the default device style."
         },
         "shape": {
           "type": "string",
           "enum": ["rect", "ellipse", "diamond", "parallelogram", "rounded", "cylinder", "cloud", "other"]
+        },
+        "fields": {
+          "type": "array",
+          "description": "Class fields or ER attributes, expressed as Mermaid-ready lines.",
+          "items": { "type": "string" }
+        },
+        "methods": {
+          "type": "array",
+          "description": "Class methods, expressed as Mermaid-ready lines.",
+          "items": { "type": "string" }
         },
         "style": { "$ref": "#/definitions/style" },
         "geometry": { "$ref": "#/definitions/geometry" }
@@ -87,6 +148,11 @@
         "source": { "type": "string" },
         "target": { "type": "string" },
         "label": { "type": "string" },
+        "relation": {
+          "type": "string",
+          "enum": ["association", "inheritance", "composition", "aggregation", "dependency", "realization", "oneToOne", "oneToMany", "manyToOne", "manyToMany", "zeroOrOneToMany", "sync", "async", "return"],
+          "description": "Semantic relation used by Mermaid class, ER, and sequence diagrams."
+        },
         "style": { "$ref": "#/definitions/edgeStyle" }
       }
     },

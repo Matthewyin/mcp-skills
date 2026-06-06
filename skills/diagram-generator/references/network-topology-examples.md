@@ -1,170 +1,93 @@
 # Network Topology Examples
 
-Common patterns for network topology diagrams in Draw.io format.
+This file contains reusable JSON patterns for Draw.io network topology diagrams.
 
-## Basic 3-Level Topology
+For current generation rules, read `playbook-network-topology.md` first.
 
-Simple structure: Environment → Datacenter → Zone → Device
+## Example 1: Basic Datacenter Topology
 
 ```json
 {
   "format": "drawio",
-  "title": "基本网络拓扑",
+  "title": "Basic Network Topology",
   "elements": [
     {
-      "id": "env-1",
+      "id": "env-prod",
       "type": "container",
-      "name": "生产环境",
+      "name": "Production Environment",
       "level": "environment",
-      "style": {
-        "fillColor": "#e1d5e7",
-        "strokeColor": "#9673a6",
-        "fontSize": 14,
-        "fontStyle": "bold"
-      },
-      "geometry": {"x": 100, "y": 100, "width": 400, "height": 300},
+      "geometry": { "x": 40, "y": 40, "width": 900, "height": 560 },
       "children": [
         {
-          "id": "dc-1",
+          "id": "dc-primary",
           "type": "container",
-          "name": "主数据中心",
+          "name": "Primary Datacenter",
           "level": "datacenter",
-          "style": {
-            "fillColor": "#d5e8d4",
-            "strokeColor": "#82b366",
-            "fontSize": 12,
-            "fontStyle": "bold"
-          },
-          "geometry": {"x": 20, "y": 30, "width": 360, "height": 250},
+          "geometry": { "x": 30, "y": 60, "width": 840, "height": 460 },
           "children": [
             {
-              "id": "zone-1",
+              "id": "zone-dmz",
               "type": "container",
-              "name": "DMZ区",
+              "name": "DMZ Zone",
               "level": "zone",
-              "style": {
-                "fillColor": "#fff2cc",
-                "strokeColor": "#d6b656",
-                "fontSize": 10,
-                "fontStyle": "bold"
-              },
-              "geometry": {"x": 30, "y": 30, "width": 140, "height": 100},
+              "geometry": { "x": 30, "y": 60, "width": 360, "height": 160 },
               "children": [
-                {
-                  "id": "fw-1",
-                  "type": "node",
-                  "name": "防火墙1",
-                  "deviceType": "firewall",
-                  "style": {"strokeColor": "#F44336"},
-                  "geometry": {"x": 10, "y": 35, "width": 55, "height": 25}
-                },
-                {
-                  "id": "fw-2",
-                  "type": "node",
-                  "name": "防火墙2",
-                  "deviceType": "firewall",
-                  "style": {"strokeColor": "#F44336"},
-                  "geometry": {"x": 75, "y": 35, "width": 55, "height": 25}
-                }
+                { "id": "fw-a", "type": "node", "name": "Firewall A", "deviceType": "firewall", "geometry": { "x": 40, "y": 65, "width": 150, "height": 60 } },
+                { "id": "fw-b", "type": "node", "name": "Firewall B", "deviceType": "firewall", "geometry": { "x": 200, "y": 65, "width": 150, "height": 60 } }
               ]
             },
             {
-              "id": "zone-2",
+              "id": "zone-app",
               "type": "container",
-              "name": "应用区",
+              "name": "Application Zone",
               "level": "zone",
-              "style": {
-                "fillColor": "#fff2cc",
-                "strokeColor": "#d6b656",
-                "fontSize": 10,
-                "fontStyle": "bold"
-              },
-              "geometry": {"x": 190, "y": 30, "width": 140, "height": 100},
+              "geometry": { "x": 430, "y": 60, "width": 360, "height": 160 },
               "children": [
-                {
-                  "id": "app-1",
-                  "type": "node",
-                  "name": "应用服务器1",
-                  "deviceType": "server",
-                  "style": {"strokeColor": "#2196F3"},
-                  "geometry": {"x": 10, "y": 35, "width": 55, "height": 25}
-                },
-                {
-                  "id": "app-2",
-                  "type": "node",
-                  "name": "应用服务器2",
-                  "deviceType": "server",
-                  "style": {"strokeColor": "#2196F3"},
-                  "geometry": {"x": 75, "y": 35, "width": 55, "height": 25}
-                }
+                { "id": "app-a", "type": "node", "name": "Application Server A", "deviceType": "server", "geometry": { "x": 40, "y": 65, "width": 150, "height": 60 } },
+                { "id": "app-b", "type": "node", "name": "Application Server B", "deviceType": "server", "geometry": { "x": 200, "y": 65, "width": 150, "height": 60 } }
               ]
             }
           ]
         }
       ]
     },
-    {
-      "id": "edge-1",
-      "type": "edge",
-      "source": "fw-1",
-      "target": "app-1",
-      "style": {"strokeColor": "#333333", "endArrow": "none"}
-    },
-    {
-      "id": "edge-2",
-      "type": "edge",
-      "source": "fw-2",
-      "target": "app-2",
-      "style": {"strokeColor": "#333333", "endArrow": "none"}
-    }
+    { "type": "edge", "source": "fw-a", "target": "app-a", "style": { "lineStyle": "straight" } },
+    { "type": "edge", "source": "fw-b", "target": "app-b", "style": { "lineStyle": "straight" } }
   ]
 }
 ```
 
-## Multi-Environment Topology
+## Example 2: Multi-Environment Topology
 
-Multiple environments with cross-environment connections.
+Use separate environment containers when production and disaster recovery are logically distinct.
 
 ```json
 {
   "format": "drawio",
-  "title": "多环境网络拓扑",
+  "title": "Multi-Environment Network Topology",
   "elements": [
     {
       "id": "env-prod",
       "type": "container",
-      "name": "生产环境",
+      "name": "Production Environment",
       "level": "environment",
-      "style": {
-        "fillColor": "#e1d5e7",
-        "strokeColor": "#9673a6",
-        "fontSize": 14
-      },
-      "geometry": {"x": 50, "y": 50, "width": 350, "height": 300},
+      "geometry": { "x": 40, "y": 40, "width": 520, "height": 360 },
       "children": [
         {
           "id": "dc-prod",
           "type": "container",
-          "name": "生产数据中心",
+          "name": "Production Datacenter",
           "level": "datacenter",
-          "style": {"fillColor": "#d5e8d4", "strokeColor": "#82b366"},
-          "geometry": {"x": 20, "y": 30, "width": 310, "height": 250},
+          "geometry": { "x": 30, "y": 60, "width": 460, "height": 260 },
           "children": [
             {
               "id": "zone-prod-app",
               "type": "container",
-              "name": "应用区",
+              "name": "Application Zone",
               "level": "zone",
-              "geometry": {"x": 20, "y": 20, "width": 120, "height": 80},
+              "geometry": { "x": 40, "y": 70, "width": 360, "height": 140 },
               "children": [
-                {
-                  "id": "prod-app-1",
-                  "type": "node",
-                  "name": "应用服务器",
-                  "deviceType": "server",
-                  "style": {"strokeColor": "#2196F3"},
-                  "geometry": {"x": 10, "y": 25, "width": 55, "height": 25}
-                }
+                { "id": "prod-app", "type": "node", "name": "Application Server", "deviceType": "server", "geometry": { "x": 100, "y": 55, "width": 160, "height": 60 } }
               ]
             }
           ]
@@ -174,351 +97,148 @@ Multiple environments with cross-environment connections.
     {
       "id": "env-dr",
       "type": "container",
-      "name": "灾备环境",
+      "name": "Disaster Recovery Environment",
       "level": "environment",
-      "style": {
-        "fillColor": "#e1d5e7",
-        "strokeColor": "#9673a6",
-        "fontSize": 14
-      },
-      "geometry": {"x": 450, "y": 50, "width": 350, "height": 300},
+      "geometry": { "x": 620, "y": 40, "width": 520, "height": 360 },
       "children": [
         {
           "id": "dc-dr",
           "type": "container",
-          "name": "灾备数据中心",
+          "name": "DR Datacenter",
           "level": "datacenter",
-          "style": {"fillColor": "#d5e8d4", "strokeColor": "#82b366"},
-          "geometry": {"x": 20, "y": 30, "width": 310, "height": 250},
+          "geometry": { "x": 30, "y": 60, "width": 460, "height": 260 },
           "children": [
             {
               "id": "zone-dr-app",
               "type": "container",
-              "name": "应用区",
+              "name": "Application Zone",
               "level": "zone",
-              "geometry": {"x": 20, "y": 20, "width": 120, "height": 80},
+              "geometry": { "x": 40, "y": 70, "width": 360, "height": 140 },
               "children": [
-                {
-                  "id": "dr-app-1",
-                  "type": "node",
-                  "name": "应用服务器",
-                  "deviceType": "server",
-                  "style": {"strokeColor": "#2196F3"},
-                  "geometry": {"x": 10, "y": 25, "width": 55, "height": 25}
-                }
+                { "id": "dr-app", "type": "node", "name": "Application Server", "deviceType": "server", "geometry": { "x": 100, "y": 55, "width": 160, "height": 60 } }
               ]
             }
           ]
         }
       ]
     },
-    {
-      "id": "edge-dr",
-      "type": "edge",
-      "source": "prod-app-1",
-      "target": "dr-app-1",
-      "label": "数据同步",
-      "style": {
-        "strokeColor": "#FF3333",
-        "strokeWidth": 2,
-        "dashPattern": "5,5"
-      }
-    }
+    { "type": "edge", "source": "prod-app", "target": "dr-app", "label": "Data replication", "style": { "lineStyle": "straight" } }
   ]
 }
 ```
 
-## 4-Level Nested Topology
+## Example 3: Four-Level Management Network
 
-Full hierarchy as shown in the 贵州.drawio example.
+Use this structure for environment -> datacenter -> zone -> device hierarchy.
 
 ```json
 {
   "format": "drawio",
-  "title": "4层嵌套网络拓扑",
+  "title": "Four-Level Network Topology",
   "elements": [
     {
-      "id": "env-1",
+      "id": "env-management",
       "type": "container",
-      "name": "省中心管理端",
+      "name": "Management Network",
       "level": "environment",
-      "style": {
-        "fillColor": "#e1d5e7",
-        "strokeColor": "#9673a6",
-        "fontSize": 14
-      },
-      "geometry": {"x": 220, "y": 750, "width": 520, "height": 450},
+      "geometry": { "x": 40, "y": 40, "width": 900, "height": 700 },
       "children": [
         {
-          "id": "dc-1",
+          "id": "dc-province",
           "type": "container",
-          "name": "省中心机房",
+          "name": "Province Center Datacenter",
           "level": "datacenter",
-          "style": {
-            "fillColor": "#d5e8d4",
-            "strokeColor": "#82b366",
-            "fontSize": 12
-          },
-          "geometry": {"x": 15, "y": 30, "width": 485, "height": 400},
+          "geometry": { "x": 40, "y": 70, "width": 820, "height": 560 },
           "children": [
             {
-              "id": "zone-1",
+              "id": "zone-uplink",
               "type": "container",
-              "name": "上联区",
+              "name": "Uplink Zone",
               "level": "zone",
-              "style": {
-                "fillColor": "#fff2cc",
-                "strokeColor": "#d6b656",
-                "fontSize": 10
-              },
-              "geometry": {"x": 93.5, "y": 40, "width": 145, "height": 70},
+              "geometry": { "x": 40, "y": 70, "width": 240, "height": 160 },
               "children": [
-                {
-                  "id": "router-1",
-                  "type": "node",
-                  "name": "路由器1",
-                  "deviceType": "router",
-                  "style": {"strokeColor": "#607D8B"},
-                  "geometry": {"x": 8, "y": 25, "width": 55, "height": 25}
-                },
-                {
-                  "id": "router-2",
-                  "type": "node",
-                  "name": "路由器2",
-                  "deviceType": "router",
-                  "style": {"strokeColor": "#607D8B"},
-                  "geometry": {"x": 68, "y": 25, "width": 55, "height": 25}
-                }
+                { "id": "router-1", "type": "node", "name": "Router 1", "deviceType": "router", "geometry": { "x": 35, "y": 65, "width": 150, "height": 60 } }
               ]
             },
             {
-              "id": "zone-2",
+              "id": "zone-aggregation",
               "type": "container",
-              "name": "汇聚区",
+              "name": "Aggregation Zone",
               "level": "zone",
-              "style": {
-                "fillColor": "#fff2cc",
-                "strokeColor": "#d6b656",
-                "fontSize": 10
-              },
-              "geometry": {"x": 93.5, "y": 165, "width": 145, "height": 70},
+              "geometry": { "x": 310, "y": 70, "width": 240, "height": 160 },
               "children": [
-                {
-                  "id": "switch-1",
-                  "type": "node",
-                  "name": "汇聚交换机1",
-                  "deviceType": "switch",
-                  "style": {"strokeColor": "#4CAF50"},
-                  "geometry": {"x": 8, "y": 25, "width": 55, "height": 25}
-                },
-                {
-                  "id": "switch-2",
-                  "type": "node",
-                  "name": "汇聚交换机2",
-                  "deviceType": "switch",
-                  "style": {"strokeColor": "#4CAF50"},
-                  "geometry": {"x": 68, "y": 25, "width": 55, "height": 25}
-                }
+                { "id": "agg-switch-1", "type": "node", "name": "Aggregation Switch 1", "deviceType": "switch", "geometry": { "x": 35, "y": 65, "width": 170, "height": 60 } }
               ]
             },
             {
-              "id": "zone-3",
+              "id": "zone-terminal",
               "type": "container",
-              "name": "终端区",
+              "name": "Terminal Zone",
               "level": "zone",
-              "style": {
-                "fillColor": "#fff2cc",
-                "strokeColor": "#d6b656",
-                "fontSize": 10
-              },
-              "geometry": {"x": 315, "y": 90, "width": 145, "height": 150},
+              "geometry": { "x": 580, "y": 70, "width": 220, "height": 160 },
               "children": [
-                {
-                  "id": "pc-1",
-                  "type": "node",
-                  "name": "管理端PC1",
-                  "deviceType": "pc",
-                  "style": {"strokeColor": "#607D8B"},
-                  "geometry": {"x": 8, "y": 110, "width": 55, "height": 25}
-                },
-                {
-                  "id": "pc-2",
-                  "type": "node",
-                  "name": "管理端PC2",
-                  "deviceType": "pc",
-                  "style": {"strokeColor": "#607D8B"},
-                  "geometry": {"x": 68, "y": 110, "width": 55, "height": 25}
-                }
+                { "id": "pc-1", "type": "node", "name": "Management PC 1", "deviceType": "pc", "geometry": { "x": 35, "y": 65, "width": 150, "height": 60 } }
               ]
             }
           ]
         }
       ]
     },
-    {
-      "id": "env-2",
-      "type": "container",
-      "name": "生产网",
-      "level": "environment",
-      "style": {
-        "fillColor": "#e1d5e7",
-        "strokeColor": "#9673a6",
-        "fontSize": 14
-      },
-      "geometry": {"x": 470, "y": 110, "width": 218, "height": 170},
-      "children": [
-        {
-          "id": "dc-2",
-          "type": "container",
-          "name": "西五环",
-          "level": "datacenter",
-          "style": {
-            "fillColor": "#d5e8d4",
-            "strokeColor": "#82b366",
-            "fontSize": 12
-          },
-          "geometry": {"x": 15, "y": 30, "width": 173, "height": 115},
-          "children": [
-            {
-              "id": "zone-4",
-              "type": "container",
-              "name": "内联接入区",
-              "level": "zone",
-              "style": {
-                "fillColor": "#fff2cc",
-                "strokeColor": "#d6b656",
-                "fontSize": 10
-              },
-              "geometry": {"x": 8, "y": 25, "width": 145, "height": 70},
-              "children": [
-                {
-                  "id": "router-3",
-                  "type": "node",
-                  "name": "路由器1",
-                  "deviceType": "router",
-                  "style": {"strokeColor": "#607D8B"},
-                  "geometry": {"x": 8, "y": 25, "width": 55, "height": 25}
-                }
-              ]
-            }
-          ]
-        }
-      ]
-    },
-    {
-      "id": "edge-1",
-      "type": "edge",
-      "source": "router-1",
-      "target": "switch-1",
-      "style": {"endArrow": "none"}
-    },
-    {
-      "id": "edge-2",
-      "type": "edge",
-      "source": "router-1",
-      "target": "switch-2",
-      "style": {"endArrow": "none"}
-    },
-    {
-      "id": "edge-3",
-      "type": "edge",
-      "source": "router-2",
-      "target": "switch-1",
-      "style": {"endArrow": "none"}
-    },
-    {
-      "id": "edge-4",
-      "type": "edge",
-      "source": "router-2",
-      "target": "switch-2",
-      "style": {"endArrow": "none"}
-    },
-    {
-      "id": "edge-5",
-      "type": "edge",
-      "source": "switch-1",
-      "target": "switch-2",
-      "style": {"endArrow": "none"}
-    },
-    {
-      "id": "edge-6",
-      "type": "edge",
-      "source": "router-1",
-      "target": "router-3",
-      "label": "长途专线",
-      "style": {"strokeColor": "#FF3333"}
-    }
+    { "type": "edge", "source": "router-1", "target": "agg-switch-1", "style": { "lineStyle": "straight" } },
+    { "type": "edge", "source": "agg-switch-1", "target": "pc-1", "style": { "lineStyle": "straight" } }
   ]
 }
 ```
 
 ## Common Zone Types
 
-| Zone Name | Typical Devices | Use Case |
-|-----------|-----------------|----------|
-| 上联区 | Routers | External network connections |
-| 汇聚区 | Core Switches | Traffic aggregation |
-| 终端区 | Switches, PCs | End-user devices |
-| 彩银区 | Firewalls, Routers | Financial network integration |
-| 内联接入区 | Routers | Internal network connections |
-| 外联接入区 | Routers | External partner connections |
-| DMZ区 | Firewalls, Public Servers | Public-facing services |
-| 应用区 | Application Servers | Application deployment |
-| 数据区 | Database Servers | Data storage |
-| 管理区 | Management Servers | Administrative access |
+| Zone | Typical devices | Purpose |
+| --- | --- | --- |
+| Uplink Zone | Routers | External or upstream network connections |
+| Aggregation Zone | Core switches, aggregation switches | Traffic aggregation |
+| Terminal Zone | Switches, PCs | End-user or management terminals |
+| Financial Integration Zone | Firewalls, routers | Bank or financial network integration |
+| Internal Access Zone | Routers, switches, firewalls | Internal network ingress |
+| External Access Zone | Routers, firewalls | Partner or external access |
+| DMZ Zone | Firewalls, public servers, load balancers | Public-facing or controlled exposure |
+| Application Zone | Application servers, proxies | Application deployment |
+| Data Zone | Database servers, storage | Data storage |
+| Management Zone | Management servers, jump hosts | Administrative access |
+| Core Zone | Core switches | Datacenter core switching |
+| Private Cloud Zone | Cloud nodes | Private cloud resources inside the datacenter |
 
 ## Connection Patterns
 
-### Full Mesh (All-to-All)
+Point-to-point:
+
 ```json
-{"type": "edge", "source": "r1", "target": "r2"},
-{"type": "edge", "source": "r1", "target": "r3"},
-{"type": "edge", "source": "r2", "target": "r3"}
+{ "type": "edge", "source": "router-a", "target": "router-b", "style": { "lineStyle": "straight" } }
 ```
 
-### Redundant Pair (Active/Active)
+Active-active pair to downstream pair:
+
 ```json
-{"type": "edge", "source": "fw-1", "target": "sw-1"},
-{"type": "edge", "source": "fw-1", "target": "sw-2"},
-{"type": "edge", "source": "fw-2", "target": "sw-1"},
-{"type": "edge", "source": "fw-2", "target": "sw-2"}
+[
+  { "type": "edge", "source": "fw-a", "target": "switch-a" },
+  { "type": "edge", "source": "fw-a", "target": "switch-b" },
+  { "type": "edge", "source": "fw-b", "target": "switch-a" },
+  { "type": "edge", "source": "fw-b", "target": "switch-b" }
+]
 ```
 
-### Hierarchy (Upstream → Downstream)
+Datacenter-to-cloud:
+
 ```json
-{"type": "edge", "source": "router", "target": "firewall"},
-{"type": "edge", "source": "firewall", "target": "switch"},
-{"type": "edge", "source": "switch", "target": "server"}
+[
+  { "type": "edge", "source": "core-switch-a", "target": "private-cloud" },
+  { "type": "edge", "source": "core-switch-b", "target": "private-cloud" }
+]
 ```
 
-### Cross-Environment (Production → DR)
-```json
-{
-  "type": "edge",
-  "source": "prod-db",
-  "target": "dr-db",
-  "label": "数据同步",
-  "style": {
-    "strokeColor": "#FF3333",
-    "dashPattern": "5,5"
-  }
-}
-```
+## Layout Notes
 
-## Layout Guidelines
-
-### Container Spacing
-- Environment to Environment: minimum 100px
-- Datacenter to Datacenter: minimum 50px
-- Zone to Zone: minimum 30px
-
-### Device Placement
-- Standard device size: 55 x 25
-- Horizontal spacing: 10-15px
-- Vertical spacing: 10-15px
-- Alignment: Top-left corner within zone
-
-### Edge Routing
-- Use `lineStyle: "orthogonal"` for clean connections
-- Avoid crossing over other devices when possible
-- Use different stroke colors for different connection types (e.g., red for cross-site links)
+- For Word documents, use vertical topology: external systems at the top, datacenters below, core and cloud zones lower inside each datacenter.
+- For PPT, horizontal peer datacenters can improve readability.
+- Keep same-role redundant devices aligned.
+- Use two-column pairs for A/B devices.
+- Avoid edge labels in dense topology diagrams unless the user explicitly asks for them.

@@ -1,43 +1,38 @@
 ---
 name: diagram-generator
-description: Generate and edit various types of diagrams (including draw.io, Mermaid, and Excalidraw). This tool supports common diagram types such as flowcharts, sequence diagrams, class diagrams, Entity-Relationship (ER) diagrams, mind maps, architecture diagrams, and network topologies.
-Natural Language Creation: Create new diagrams based on simple text descriptions.
-Legacy File Support: Read and modify existing .drawio, .mmd (Mermaid), or Excalidraw files.
-MCP Server Integration: Utilizes a dedicated MCP server (mcp-diagram-generator) to generate files, which minimizes token consumption and ensures consistent output formatting.
-Automated Configuration: Default Output Path - Diagrams are saved to diagrams/{format}/ within the project directory.
-Customization: Supports custom file paths and automatic directory creation.
-version: 1.1.1
+description: Generate and edit diagrams with the mcp-diagram-generator MCP server. Use this skill for new diagrams, existing .drawio/.mmd/.excalidraw edits, network topology, architecture, flowchart, swimlane, sequence, class, ER, mind map, and Excalidraw whiteboard work. Always use this skill when the user asks to draw, generate, revise, or export any diagram.
+version: 1.1.3
 ---
 
 # Diagram Generator
 
-## Overview
+## Purpose
 
-Generate and edit diagrams in multiple formats (drawio, mermaid, excalidraw) by creating structured JSON descriptions and delegating file generation to the mcp-diagram-generator MCP server.
+Create and edit diagrams by converting user intent into a structured JSON specification, then delegating file generation to the `mcp-diagram-generator` MCP server.
 
-> **Contact Information** If you encounter any issues, please contact **AlkaidY** at [tccio2023@gmail.com](mailto:tccio2023@gmail.com).
+Supported formats:
+- Draw.io: `.drawio`
+- Mermaid: `.mmd` or markdown Mermaid content
+- Excalidraw: `.excalidraw`
 
-## Prerequisites Check
+Supported work:
+- Natural-language diagram creation
+- Existing `.drawio`, `.mmd`, and `.excalidraw` edits
+- Default output paths under `diagrams/{format}/`
+- Custom filenames and output paths
 
-**IMPORTANT**: This skill requires the `mcp-diagram-generator` MCP server to be installed and configured.
+Contact: AlkaidY, `tccio2023@gmail.com`.
 
-### Quick Verification
+## Required MCP Tools
 
-Before using this skill, verify the MCP server is available by checking if you can access these tools:
+Before generating a diagram, verify that the MCP server tools are available:
 - `mcp__mcp-diagram-generator__get_config`
 - `mcp__mcp-diagram-generator__generate_diagram`
 - `mcp__mcp-diagram-generator__init_config`
 
-If these tools are **NOT available**, you need to configure the MCP server first (see below).
+If the tools are missing, configure the MCP server.
 
-### Installation & Configuration
-
-**Option 1: Using npx (Recommended - Auto-downloads the package)**
-
-Add the following to your Claude Code configuration file:
-
-- **Global config** (`~/.claude.json`) for all projects, or
-- **Project config** (`.claude.json`) for specific project
+Recommended remote configuration:
 
 ```json
 {
@@ -50,14 +45,7 @@ Add the following to your Claude Code configuration file:
 }
 ```
 
-After adding this configuration:
-1. Restart Claude Code
-2. The MCP server will auto-download via npx on first use
-3. No manual installation needed
-
-**Option 2: Local Development (For developers)**
-
-If you're developing the MCP server locally:
+Local development configuration:
 
 ```json
 {
@@ -70,398 +58,221 @@ If you're developing the MCP server locally:
 }
 ```
 
-### Verification Steps
+After changing configuration, restart the agent environment. On first use, the server creates `.diagram-config.json` and default output directories.
 
-After configuration, verify it works:
+## Main Workflow
 
-1. Check configuration: Call `get_config()` tool
-2. If successful, you'll see current paths and initialization status
-3. If the tool doesn't exist, check your configuration file syntax
+### 1. Intake
 
-### Common Issues
+For new diagrams, collect the basic options before accepting or processing the full diagram prompt:
+- Diagram type
+- Output format
+- Layout direction
+- Usage context
+- Optional filename or output directory
 
-**Issue**: "Tool not found" error
-- **Solution**: MCP server not configured. Follow installation steps above.
+Read `references/interaction-intake-guide.md` before asking intake questions.
 
-**Issue**: Configuration looks correct but tools still not available
-- **Solution**: Restart Claude Code to reload MCP server configuration
+Skip intake when the user already provided all required options and the full prompt. For existing-file edits, ask only for the target file and requested changes if missing.
 
-## Quick Start
+### 2. Dispatch To A Playbook
 
-### First Time Use
+Select exactly one primary playbook based on the diagram type:
 
-On first use, the MCP server will automatically:
-1. Create default configuration file (`.diagram-config.json`)
-2. Create default output directories if they don't exist
-3. Use sensible defaults: `diagrams/{format}/`
+| User Intent | Primary Playbook |
+| --- | --- |
+| Network topology, datacenter, zone, router, switch, firewall | `references/playbook-network-topology.md` |
+| System architecture, application architecture, layered component diagram | `references/playbook-architecture.md` |
+| Flowchart, process, decision tree | `references/playbook-flowchart.md` |
+| Swimlane, cross-team handoff, approval workflow by department | `references/playbook-swimlane.md` |
+| Sequence, class, ER, UML-style diagrams | `references/playbook-uml.md` |
+| Whiteboard sketch, hand-drawn style, informal Excalidraw diagram | `references/playbook-excalidraw.md` |
+| Unsure about format | `references/format-selection-guide.md` first, then the matching playbook |
 
-You can customize paths at any time using the `init_config` tool.
+Only read the playbook needed for the current diagram. If a playbook points to `json-schema-guide.md` or `network-topology-examples.md`, read only the relevant section.
+For explicit geometry, also read `references/layout-quality-guide.md`.
 
-### Basic Usage
+### 3. Choose Format
 
-**Simple example** - just provide diagram spec, let the server handle the rest:
+Use these defaults unless the user explicitly chooses otherwise:
 
-```
-User: "创建一个网络拓扑图"
-```
+| Diagram Type | Default Format | Default Direction |
+| --- | --- | --- |
+| Network topology | Draw.io | Vertical |
+| Architecture | Draw.io | Vertical or automatic |
+| Flowchart | Mermaid | Vertical |
+| Swimlane | Draw.io | Horizontal |
+| Sequence | Mermaid | Automatic |
+| Class | Mermaid | Automatic |
+| ER | Mermaid | Automatic |
+| Mind map | Mermaid | Automatic |
+| Whiteboard sketch | Excalidraw | Automatic |
 
-Skill will:
-1. Generate JSON spec
-2. Call `generate_diagram` with only `diagram_spec` parameter
-3. Server auto-creates directories and saves to `diagrams/{format}/{title}-{date}.{ext}`
+Usage context can override defaults:
+- Word: prefer portrait-friendly vertical layouts.
+- PPT: horizontal layouts are acceptable when readability improves.
+- Code repositories and documentation: prefer Mermaid for simple flow, sequence, class, and ER diagrams.
+- Whiteboard collaboration: prefer Excalidraw.
+- Complex network or architecture diagrams: prefer Draw.io unless the user explicitly asks for Excalidraw.
 
-## Workflow
+### 4. Build The JSON Specification
 
-### Step 1: Understand Requirements
-
-Extract from user's natural language:
-- **Diagram type**: flowchart, sequence diagram, class diagram, ER diagram, mindmap, architecture diagram, network topology
-- **Content**: nodes, relationships, nested structure (for network topology)
-- **Style/theme**: if mentioned (e.g., "clean style", "detailed")
-- **Output preferences**: specific filename? custom path?
-
-### Step 2: Choose Format
-
-Use [format-selection-guide.md](references/format-selection-guide.md) to decide:
-
-| Format | Best For |
-|--------|----------|
-| **drawio** | Complex diagrams, network topology with nested containers, fine-grained styling, manual editing |
-| **mermaid** | Quick generation, code-friendly, version control, documentation |
-| **excalidraw** | Hand-drawn style, creative/diagrammatic flexibility, informal sketches |
-
-### Step 3: Generate Structured JSON
-
-Create a JSON description following the [JSON Schema](references/json-schema-guide.md). Key structure:
+Follow `references/json-schema-guide.md` for the schema. Core structure:
 
 ```json
 {
   "format": "drawio",
-  "title": "diagram name",
+  "diagramType": "architecture",
+  "title": "Diagram title",
   "elements": [
     {
       "id": "unique-id",
-      "type": "container|node|edge",
-      "name": "display name",
-      "level": "environment|datacenter|zone|device", // for network topology
-      "style": {...},
-      "geometry": {...},
-      "children": [...] // for nested containers
+      "type": "container",
+      "name": "Display name",
+      "level": "environment",
+      "geometry": { "x": 0, "y": 0, "width": 800, "height": 600 },
+      "children": []
+    },
+    {
+      "type": "edge",
+      "source": "source-id",
+      "target": "target-id"
     }
   ]
 }
 ```
 
-**Important**: Use unique IDs for all elements. For nested structures, maintain parent-child relationships.
+Universal rules:
+- `elements` must be an array.
+- IDs must be unique.
+- Edges must be top-level elements, never inside `children`.
+- Edge `source` and `target` must resolve to an existing node or container.
+- `style` must be an object.
+- Colors should use `#RRGGBB`.
+- Use `fillColor: "none"` for Draw.io no-fill nodes when needed.
 
-### Step 4: Call MCP Server
+### 5. Quality Gate
 
-**Option A: Use defaults (recommended)**
+Before calling the MCP server, verify:
+- The chosen format matches the intake answer and playbook.
+- `diagramType` is explicit when supported.
+- Layout direction is reflected in coordinates or generator-specific fields.
+- Complex Draw.io and Excalidraw diagrams have explicit `geometry`.
+- Container hierarchy is valid.
+- Edges are top-level elements.
+- Text and connector rules for the selected format are followed.
+
+After generation, inspect the saved file enough to confirm the expected format-specific properties exist. For code changes to the MCP server, also run `npm run test:diagrams` from `mcp-diagram-generator/`.
+
+### 6. Generate
+
+Preferred call:
 
 ```json
 {
-  "diagram_spec": <the JSON object created above>
-  // output_path is optional - server will use configured default
-  // filename is optional - server will auto-generate based on title and date
+  "diagram_spec": "<spec object>"
 }
 ```
 
-The MCP server will:
-- Validate the JSON schema
-- Generate the appropriate XML/JSON/markdown
-- Auto-create output directories if needed
-- Save to configured default path (e.g., `diagrams/drawio/network-topology-2025-02-03.drawio`)
-
-**Option B: Specify custom path**
+Optional filename:
 
 ```json
 {
-  "diagram_spec": <the JSON object>,
-  "output_path": "custom/path/to/diagram.drawio",
-  "filename": "my-custom-name" // optional, overrides auto-generated filename
-}
-```
-
-**Option C: Just provide filename, use default directory**
-
-```json
-{
-  "diagram_spec": <the JSON object>,
+  "diagram_spec": "<spec object>",
   "filename": "my-diagram.drawio"
-  // Saves to diagrams/{format}/my-diagram.drawio
 }
 ```
 
-### Step 5: Editing Existing Diagrams
+Optional explicit output path:
 
-1. **Read the existing file** to understand structure
-2. **Parse** the diagram (use MCP tool if available, or read raw file)
-3. **Modify** the JSON description based on user's change request
-4. **Generate** new diagram (overwrite or create new file)
-
-## Configuration Management
-
-### Initialize Configuration
-
-**Initialize with defaults:**
-```
-Call: init_config()
-Result: Creates .diagram-config.json with default paths
-```
-
-**Initialize with custom paths:**
-```
-Call: init_config({
-  paths: {
-    drawio: "output/diagrams/drawio",
-    mermaid: "output/diagrams/mermaid",
-    excalidraw: "output/diagrams/excalidraw"
-  }
-})
-```
-
-### View Current Configuration
-
-```
-Call: get_config()
-Returns: Current paths and initialization status
-```
-
-### Update Single Path
-
-```
-Call: set_output_path({
-  format: "drawio",
-  path: "custom/drawio-path"
-})
-```
-
-## Supported Diagram Types
-
-### Flowchart
-- Simple process flows, decision trees
-- Use **mermaid** for quick output
-- Use **drawio** for complex layouts with multiple branches
-
-### Sequence Diagram
-- Show interactions over time between components
-- **mermaid** recommended (native support)
-- Use **drawio** if custom styling needed
-
-### Class Diagram
-- Show classes, methods, relationships
-- **mermaid** recommended (compact, standard UML)
-- **drawio** for detailed diagrams with many classes
-
-### ER Diagram
-- Database schema, entity relationships
-- **mermaid** recommended
-- **drawio** for complex schemas with many relationships
-
-### Mindmap
-- Hierarchical ideas, brainstorming
-- **mermaid** recommended (native support)
-- **excalidraw** for creative/hand-drawn style
-
-### Architecture Diagram
-- System architecture, component relationships
-- **drawio** recommended for complex systems
-- **mermaid** for high-level overviews
-
-### Network Topology
-- Network environments, datacenters, zones, devices
-- **Must use drawio** (4-layer nesting: environment → datacenter → zone → device)
-- See [network-topology-examples.md](references/network-topology-examples.md) for patterns
-
-## Network Topology Special Notes
-
-Network topology diagrams require a 4-level hierarchical structure:
-
-```
-Environment (level="environment")
-  └── Datacenter (level="datacenter")
-        └── Zone (level="zone")
-              └── Device (type="node")
-```
-
-**Style conventions**:
-- **Environment**: `fillColor: #e1d5e7`, `strokeColor: #9673a6` (purple)
-- **Datacenter**: `fillColor: #d5e8d4`, `strokeColor: #82b366` (green)
-- **Zone**: `fillColor: #fff2cc`, `strokeColor: #d6b656` (yellow)
-- **Device**: Based on device type (router, switch, firewall, etc.)
-
-**Device types and styles**:
-- Router: `strokeColor: #607D8B` (blue-gray)
-- Switch: `strokeColor: #4CAF50` (green)
-- Firewall: `strokeColor: #F44336` (red)
-- PC/Server: `strokeColor: #607D8B` (blue-gray)
-
-## Common Patterns
-
-### Pattern 1: Simple Flowchart (Mermaid)
-
-User: "画一个用户登录流程图，包含登录验证、重定向、错误处理"
-
-Generate JSON:
 ```json
 {
-  "format": "mermaid",
-  "title": "用户登录流程",
-  "elements": [
-    {"type": "node", "id": "start", "name": "开始", "geometry": {"x": 0, "y": 0}},
-    {"type": "node", "id": "login", "name": "输入用户名密码", "geometry": {"x": 0, "y": 100}},
-    {"type": "node", "id": "validate", "name": "验证", "geometry": {"x": 0, "y": 200}},
-    {"type": "node", "id": "success", "name": "登录成功", "geometry": {"x": -100, "y": 300}},
-    {"type": "node", "id": "error", "name": "显示错误", "geometry": {"x": 100, "y": 300}},
-    {"type": "edge", "source": "start", "target": "login"},
-    {"type": "edge", "source": "login", "target": "validate"},
-    {"type": "edge", "source": "validate", "target": "success", "label": "成功"},
-    {"type": "edge", "source": "validate", "target": "error", "label": "失败"}
-  ]
+  "diagram_spec": "<spec object>",
+  "output_path": "custom/path/to/diagram.drawio"
 }
 ```
 
-Call MCP:
-```
-generate_diagram({
-  diagram_spec: <above JSON>,
-  format: "mermaid"
-  // No output_path needed - auto-saves to diagrams/mermaid/
-})
-```
+The MCP server validates the schema, creates missing directories, and writes to the configured default directory when no output path is supplied.
 
-### Pattern 2: Network Topology (Drawio)
+## Configuration Helpers
 
-User: "创建一个网络拓扑图，包含省中心机房（上联区、汇聚区、终端区），连接到生产网"
+Initialize defaults:
 
-Generate JSON with nested containers (see [json-schema-guide.md](references/json-schema-guide.md) for details).
-
-Call MCP:
-```
-generate_diagram({
-  diagram_spec: <network topology JSON>,
-  filename: "省中心网络拓扑" // Optional, for custom filename
-})
+```text
+init_config()
 ```
 
-## Resources
+Set custom paths:
 
-### references/
-- **format-selection-guide.md**: When to use drawio vs mermaid vs excalidraw
-- **json-schema-guide.md**: Complete JSON schema with examples for all diagram types
-- **network-topology-examples.md**: Example JSON for network topology patterns
+```json
+{
+  "paths": {
+    "drawio": "output/diagrams/drawio",
+    "mermaid": "output/diagrams/mermaid",
+    "excalidraw": "output/diagrams/excalidraw"
+  }
+}
+```
 
-### assets/
-- No templates needed - MCP server handles all generation
+Inspect configuration:
 
-### scripts/
-- Not used - all generation delegated to MCP server
+```text
+get_config()
+```
+
+Update one format path:
+
+```json
+{
+  "format": "drawio",
+  "path": "custom/drawio-path"
+}
+```
 
 ## Troubleshooting
 
-### MCP Server Setup
+Tool missing:
+- Configure the MCP server and restart the agent environment.
 
-If `mcp-diagram-generator` is not available, you need to install it.
+Schema validation failed:
+- Read `references/json-schema-guide.md`.
+- Check required fields, unique IDs, edge source/target, and parent-child structure.
 
-**Option 1: Using npx (Recommended)**
+Directory error:
+- Check write permissions.
+- Run `get_config()`.
+- Reinitialize with `init_config()` if needed.
 
-Add to your Claude Code/OpenCode settings:
+Wrong extension:
+- Draw.io uses `.drawio`.
+- Mermaid uses `.mmd` or markdown output.
+- Excalidraw uses `.excalidraw`.
 
-```json
-{
-  "mcpServers": {
-    "diagram-generator": {
-      "command": "npx",
-      "args": ["-y", "mcp-diagram-generator"]
-    }
-  }
-}
-```
+Nested container issue:
+- Child coordinates are relative to the direct parent.
+- Container sizes must fit child bounds plus padding.
+- Network topology must follow environment -> datacenter -> zone -> device.
 
-**Option 2: Local Development**
+## Reference Index
 
-1. Install dependencies: `cd mcp-diagram-generator && npm install`
-2. Build: `npm run build`
-3. Configure with local path:
-```json
-{
-  "mcpServers": {
-    "diagram-generator": {
-      "command": "node",
-      "args": ["/absolute/path/to/mcp-diagram-generator/dist/index.js"]
-    }
-  }
-}
-```
+Read only what is needed:
 
-### Invalid JSON Schema
+- `references/interaction-intake-guide.md`: interactive intake defaults and question template.
+- `references/format-selection-guide.md`: format selection matrix.
+- `references/playbook-network-topology.md`: Draw.io and Excalidraw network topology rules.
+- `references/playbook-architecture.md`: layered architecture rules.
+- `references/playbook-flowchart.md`: process and decision flow rules.
+- `references/playbook-swimlane.md`: swimlane and handoff rules.
+- `references/playbook-uml.md`: sequence, class, and ER rules.
+- `references/playbook-excalidraw.md`: Excalidraw whiteboard and binding rules.
+- `references/layout-quality-guide.md`: explicit geometry, spacing, and connector readability rules.
+- `references/json-schema-guide.md`: schema details and examples.
+- `references/network-topology-examples.md`: network topology JSON patterns.
 
-If MCP server returns validation error:
-1. Check [json-schema-guide.md](references/json-schema-guide.md)
-2. Verify all required fields are present
-3. Ensure all IDs are unique
-4. Check parent-child relationships
+## Output Discipline
 
-### Directory Not Found
-
-**Old behavior**: Error if directory doesn't exist
-**New behavior**: Directory is created automatically ✅
-
-If you still see directory errors:
-1. Check write permissions for the project directory
-2. Verify configuration with `get_config()`
-3. Reinitialize with `init_config()`
-
-### Wrong File Extension
-
-The server automatically uses the correct extension based on format:
-- drawio → `.drawio`
-- mermaid → `.md`
-- excalidraw → `.excalidraw`
-
-You don't need to specify extension in filename parameter.
-
-### Nested Container Issues (Network Topology)
-
-- Verify `level` field matches hierarchy (environment/datacenter/zone)
-- Check `parent` IDs are correct in child elements
-- Ensure geometry coordinates are relative to parent container
-
-## Best Practices
-
-### 1. Use Default Paths
-
-Let the server manage output paths for consistency:
-
-```json
-{
-  "diagram_spec": <spec>
-  // Don't specify output_path unless necessary
-}
-```
-
-### 2. Provide Descriptive Titles
-
-Titles are used for auto-generated filenames:
-
-```json
-{
-  "title": "生产环境网络拓扑-亦庄与西五环",
-  // Generates: 生产环境网络拓扑-亦庄与西五环-2025-02-03.drawio
-}
-```
-
-### 3. Use Configuration for Custom Paths
-
-Instead of specifying output_path every time, configure once:
-
-```
-First time: init_config({ paths: { drawio: "custom/path" } })
-After that: Just use generate_diagram() without output_path
-```
-
-### 4. Check Configuration When Troubleshooting
-
-```
-get_config() // Shows all paths and status
-```
+When responding to the user:
+- Confirm the selected diagram type, format, direction, and output file.
+- Do not paste the full JSON unless the user asks.
+- Provide the saved file path.
+- Mention any validation or regression command that was run.

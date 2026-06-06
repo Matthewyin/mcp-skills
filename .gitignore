@@ -26,6 +26,7 @@ npm-debug.log*
 # Environment
 .env
 .env.local
+.env.*
 
 # Test coverage
 coverage/
@@ -34,9 +35,12 @@ coverage/
 tmp/
 temp/
 *.tmp
+.omc/
 
-# Video project source (only keep output video)
-video-remotion/
+# Generated packages
+*.tgz
+*.zip
 
-# Topology source files
+# Generated diagrams and local outputs
+diagrams/
 topology/

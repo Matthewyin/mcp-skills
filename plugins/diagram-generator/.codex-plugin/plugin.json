@@ -1,0 +1,35 @@
+{
+  "name": "diagram-generator",
+  "version": "1.1.4",
+  "description": "Generate Draw.io, Mermaid, and Excalidraw diagrams from structured prompts using an MCP server.",
+  "author": {
+    "name": "Matthewyin"
+  },
+  "license": "MIT",
+  "keywords": [
+    "diagram",
+    "drawio",
+    "mermaid",
+    "excalidraw",
+    "mcp"
+  ],
+  "skills": "./skills/",
+  "mcpServers": "./.mcp.json",
+  "interface": {
+    "displayName": "Diagram Generator",
+    "shortDescription": "Generate editable Draw.io, Mermaid, and Excalidraw diagrams.",
+    "longDescription": "A diagram generation plugin that combines an interactive diagram planning skill with an MCP server for generating Draw.io, Mermaid, and Excalidraw files.",
+    "developerName": "Matthewyin",
+    "category": "Productivity",
+    "capabilities": [
+      "Interactive",
+      "Write"
+    ],
+    "defaultPrompt": [
+      "Create a network topology diagram.",
+      "Draw an architecture diagram.",
+      "Generate an Excalidraw whiteboard sketch."
+    ],
+    "brandColor": "#3B82F6"
+  }
+}
