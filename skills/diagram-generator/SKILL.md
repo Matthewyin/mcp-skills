@@ -1,7 +1,7 @@
 ---
 name: diagram-generator
 description: Generate and edit diagrams with the mcp-diagram-generator MCP server. Use this skill for new diagrams, existing .drawio/.mmd/.excalidraw edits, network topology, architecture, flowchart, swimlane, sequence, class, ER, mind map, and Excalidraw whiteboard work. Always use this skill when the user asks to draw, generate, revise, or export any diagram.
-version: 1.1.5
+version: 1.1.6
 ---
 
 # Diagram Generator
@@ -170,6 +170,8 @@ Before calling the MCP server, verify:
 - Network devices use `deviceType` instead of relying only on node names.
 - Network topology edges omit labels and arrows unless the user explicitly asks for them.
 - Network topology edges use straight connectors by default.
+- Network topology does not expand A/B redundancy into full-mesh visible links.
+- Dense topology uses bundled trunk links or aggregate group/container links.
 - Network topology node text is readable; prefer 18-20px font sizes and larger boxes over cramped 12px labels.
 
 After generation, inspect the saved file enough to confirm the expected format-specific properties exist. For code changes to the MCP server, also run `npm run test:diagrams` from `mcp-diagram-generator/`.
@@ -177,7 +179,9 @@ After generation, inspect the saved file enough to confirm the expected format-s
 If validation returns quality warnings, fix the spec before generation unless
 the user explicitly accepts lower visual quality. Warnings about missing
 containers, small fonts, edge labels, arrows, orthogonal topology lines, or
-missing `deviceType` usually mean the diagram will be harder to read.
+missing `deviceType` usually mean the diagram will be harder to read. Warnings
+about too many explicit links or too many visible links mean the diagram is
+turning into a line tangle and must be simplified before generation.
 
 ### 6. Generate
 

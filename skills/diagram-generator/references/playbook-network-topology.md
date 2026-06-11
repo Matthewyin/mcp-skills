@@ -63,6 +63,11 @@ Keep logically separate domains in separate containers:
 - Do not put text on topology connectors by default.
 - Do not use arrowheads on topology connectors by default.
 - Use top-level edges only.
+- Do not expand A/B redundancy into a full mesh of visible links. Use one
+  bundled trunk link between logical groups, or at most one A-to-A and one
+  B-to-B line when physical redundancy must be visible.
+- If a node would need more than six visible links, introduce an aggregate
+  group/container link or summarize the relationship in the node label.
 
 ## Device Type Presets
 
@@ -116,6 +121,9 @@ Before generation:
 - Verify all edge endpoints resolve to existing nodes.
 - Verify edge labels are omitted unless the user explicitly requested them.
 - Verify straight-line topology connector rules for Draw.io.
+- Verify redundant A/B paths are bundled instead of rendered as a full mesh.
+- Verify no single device has more than six visible links unless the user
+  explicitly requested cable-level detail.
 - Verify `deviceType` is set for routers, access switches, core switches,
   firewalls, load balancers, SSL gateways, proxies, clouds, and external systems.
 - Verify readable font size and node dimensions before accepting the output.

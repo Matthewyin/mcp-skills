@@ -115,6 +115,57 @@ function testNetworkTopologyQualityWarnings() {
   assert(warnings.includes('omit arrowheads'), '低质量拓扑必须提示箭头问题');
 }
 
+function testNetworkTopologyDenseLinkWarnings() {
+  const nodes = Array.from({ length: 16 }, (_, index) => ({
+    id: `switch-${index + 1}`,
+    type: 'node',
+    name: `交换机${index + 1}`,
+    deviceType: 'switch',
+    geometry: { x: 30 + (index % 4) * 170, y: 60 + Math.floor(index / 4) * 80, width: 140, height: 58 }
+  }));
+  const edges = [];
+
+  for (let i = 1; i <= 13; i++) {
+    edges.push({ type: 'edge', source: 'switch-1', target: `switch-${i + 1}`, style: { lineStyle: 'straight', endArrow: 'none' } });
+  }
+
+  for (let i = 2; i <= 10; i++) {
+    edges.push({ type: 'edge', source: `switch-${i}`, target: `switch-${i + 6}`, style: { lineStyle: 'straight', endArrow: 'none' } });
+  }
+
+  const validation = validator.validate({
+    format: 'drawio',
+    title: 'dense-network-topology',
+    elements: [{
+      id: 'env',
+      type: 'container',
+      name: '生产网',
+      level: 'environment',
+      geometry: { x: 0, y: 0, width: 900, height: 600 },
+      children: [{
+        id: 'dc',
+        type: 'container',
+        name: '数据中心',
+        level: 'datacenter',
+        geometry: { x: 20, y: 50, width: 840, height: 500 },
+        children: [{
+          id: 'zone',
+          type: 'container',
+          name: '外联区',
+          level: 'zone',
+          geometry: { x: 20, y: 50, width: 780, height: 400 },
+          children: nodes
+        }]
+      }]
+    }, ...edges]
+  });
+
+  assert(validation.valid, `线团拓扑仍应通过结构校验: ${(validation.errors || []).join('; ')}`);
+  const warnings = (validation.warnings || []).join('\n');
+  assert(warnings.includes('too many explicit links'), '线团拓扑必须提示显式连线过多');
+  assert(warnings.includes('too many visible links'), '线团拓扑必须提示单节点连线过多');
+}
+
 async function testArchitecture() {
   const file = out('architecture.drawio');
   await drawio.generate({
@@ -339,6 +390,7 @@ async function testExcalidraw() {
 async function main() {
   await testNetworkTopology();
   testNetworkTopologyQualityWarnings();
+  testNetworkTopologyDenseLinkWarnings();
   await testArchitecture();
   await testSwimlane();
   await testFlowchart();

@@ -252,6 +252,8 @@ export class SchemaValidator {
       warnings.push('Quality: too many devices are attached directly to the root; use environment -> datacenter -> zone containers');
     }
 
+    this.collectEdgeDensityWarnings(spec, nodes, containers, edges, warnings);
+
     for (const node of nodes) {
       if (!node.geometry) {
         warnings.push(`Quality: network node should use explicit geometry: ${node.id}`);
@@ -285,6 +287,57 @@ export class SchemaValidator {
         warnings.push(`Quality: network topology edges should omit arrowheads by default: ${edge.id || `${edge.source}->${edge.target}`}`);
       }
     }
+  }
+
+  private collectEdgeDensityWarnings(spec: any, nodes: any[], containers: any[], edges: any[], warnings: string[]): void {
+    if (edges.length > 18 && edges.length > nodes.length * 1.35) {
+      warnings.push('Quality: network topology has too many explicit links; use bundled trunk links or summarize redundant A/B paths');
+    }
+
+    const degree = new Map<string, number>();
+    for (const edge of edges) {
+      degree.set(edge.source, (degree.get(edge.source) || 0) + 1);
+      degree.set(edge.target, (degree.get(edge.target) || 0) + 1);
+    }
+
+    for (const [id, count] of degree) {
+      if (count > 6 && edges.length > 18) {
+        warnings.push(`Quality: network node has too many visible links; use bundle/container links: ${id}`);
+      }
+    }
+
+    const datacenterById = this.collectDatacenterById(spec.elements || []);
+    const crossDatacenterEdges = edges.filter(edge => {
+      const sourceDc = datacenterById.get(edge.source);
+      const targetDc = datacenterById.get(edge.target);
+      return sourceDc && targetDc && sourceDc !== targetDc;
+    });
+
+    if (crossDatacenterEdges.length > 4) {
+      warnings.push('Quality: too many cross-datacenter links are drawn directly; use one or two interconnect trunk lines');
+    }
+  }
+
+  private collectDatacenterById(elements: any[], currentDatacenter?: string): Map<string, string> {
+    const result = new Map<string, string>();
+
+    for (const element of elements) {
+      const nextDatacenter = element.type === 'container' && element.level === 'datacenter'
+        ? element.id
+        : currentDatacenter;
+
+      if (element.id && nextDatacenter) {
+        result.set(element.id, nextDatacenter);
+      }
+
+      if (element.type === 'container' && element.children) {
+        for (const [id, datacenter] of this.collectDatacenterById(element.children, nextDatacenter)) {
+          result.set(id, datacenter);
+        }
+      }
+    }
+
+    return result;
   }
 
   private isNetworkTopology(spec: any): boolean {
