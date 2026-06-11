@@ -48,15 +48,20 @@ Keep logically separate domains in separate containers:
 
 ## Draw.io Rules
 
+- Use the MCP structured JSON spec as the primary generation path. Do not
+  hand-write `.drawio` XML unless repairing an existing file and the user
+  explicitly asks for a direct XML edit.
 - Use explicit `geometry` for all complex topology diagrams.
 - Top-level coordinates are absolute.
 - Child coordinates are relative to the direct parent container.
 - Keep containers compact, but preserve readable spacing between device boxes.
 - Avoid large empty bands.
-- Use 20px default font size.
+- Use 20px default font size. Do not use 12px or cramped labels for
+  presentation or document topology diagrams.
 - Make node boxes large enough for text wrapping.
 - Network topology connectors must be straight lines without orthogonal turns.
 - Do not put text on topology connectors by default.
+- Do not use arrowheads on topology connectors by default.
 - Use top-level edges only.
 
 ## Device Type Presets
@@ -105,14 +110,19 @@ Use Excalidraw only for whiteboard-style topology:
 Before generation:
 - Confirm the selected format, direction, and usage context.
 - Verify environment -> datacenter -> zone -> device nesting.
+- Verify there are not many peer devices directly under the root element.
 - Verify private cloud placement inside datacenter containers.
 - Verify province center and bank are not in the same container.
 - Verify all edge endpoints resolve to existing nodes.
 - Verify edge labels are omitted unless the user explicitly requested them.
 - Verify straight-line topology connector rules for Draw.io.
+- Verify `deviceType` is set for routers, access switches, core switches,
+  firewalls, load balancers, SSL gateways, proxies, clouds, and external systems.
+- Verify readable font size and node dimensions before accepting the output.
 
 After generation:
 - Check that no topology edge labels appear unexpectedly.
 - Check that switch fill color is `#FFFFCC`.
 - Check that connector routing is straight for Draw.io topology.
+- Check that datacenter and zone containers are visible as swimlanes.
 - For Excalidraw, check that arrows have `startBinding` and `endBinding`.

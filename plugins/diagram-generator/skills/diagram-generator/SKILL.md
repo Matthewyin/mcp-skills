@@ -1,7 +1,7 @@
 ---
 name: diagram-generator
 description: Generate and edit diagrams with the mcp-diagram-generator MCP server. Use this skill for new diagrams, existing .drawio/.mmd/.excalidraw edits, network topology, architecture, flowchart, swimlane, sequence, class, ER, mind map, and Excalidraw whiteboard work. Always use this skill when the user asks to draw, generate, revise, or export any diagram.
-version: 1.1.3
+version: 1.1.5
 ---
 
 # Diagram Generator
@@ -92,6 +92,11 @@ Select exactly one primary playbook based on the diagram type:
 Only read the playbook needed for the current diagram. If a playbook points to `json-schema-guide.md` or `network-topology-examples.md`, read only the relevant section.
 For explicit geometry, also read `references/layout-quality-guide.md`.
 
+For complex network topology in Draw.io, do not hand-write `.drawio` XML as
+the primary path. Build a structured JSON spec with nested containers,
+explicit geometry, deviceType presets, and top-level edges, then call
+`validate_diagram_spec` before `generate_diagram`.
+
 ### 3. Choose Format
 
 Use these defaults unless the user explicitly chooses otherwise:
@@ -161,8 +166,18 @@ Before calling the MCP server, verify:
 - Container hierarchy is valid.
 - Edges are top-level elements.
 - Text and connector rules for the selected format are followed.
+- Complex Draw.io network topology uses environment/datacenter/zone containers.
+- Network devices use `deviceType` instead of relying only on node names.
+- Network topology edges omit labels and arrows unless the user explicitly asks for them.
+- Network topology edges use straight connectors by default.
+- Network topology node text is readable; prefer 18-20px font sizes and larger boxes over cramped 12px labels.
 
 After generation, inspect the saved file enough to confirm the expected format-specific properties exist. For code changes to the MCP server, also run `npm run test:diagrams` from `mcp-diagram-generator/`.
+
+If validation returns quality warnings, fix the spec before generation unless
+the user explicitly accepts lower visual quality. Warnings about missing
+containers, small fonts, edge labels, arrows, orthogonal topology lines, or
+missing `deviceType` usually mean the diagram will be harder to read.
 
 ### 6. Generate
 

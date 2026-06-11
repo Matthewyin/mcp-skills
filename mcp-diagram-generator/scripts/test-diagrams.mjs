@@ -86,6 +86,35 @@ async function testNetworkTopology() {
   assert((xml.match(/fillColor=#FFFFCC/g) || []).length >= 2, '交换机和核心交换机必须使用 #FFFFCC');
 }
 
+function testNetworkTopologyQualityWarnings() {
+  const validation = validator.validate({
+    format: 'drawio',
+    title: 'low-quality-network-topology',
+    elements: [
+      { id: 'router', type: 'node', name: '路由器', style: { fontSize: 12 } },
+      { id: 'switch', type: 'node', name: '接入交换机', style: { fontSize: 12 } },
+      {
+        id: 'edge-router-switch',
+        type: 'edge',
+        source: 'router',
+        target: 'switch',
+        label: '连接',
+        style: { lineStyle: 'orthogonal', endArrow: 'arrow' }
+      }
+    ]
+  });
+
+  assert(validation.valid, `低质量拓扑仍应通过结构校验: ${(validation.errors || []).join('; ')}`);
+  const warnings = (validation.warnings || []).join('\n');
+  assert(warnings.includes('datacenter containers'), '低质量拓扑必须提示缺少数据中心容器');
+  assert(warnings.includes('zone containers'), '低质量拓扑必须提示缺少区域容器');
+  assert(warnings.includes('font is likely too small'), '低质量拓扑必须提示字号过小');
+  assert(warnings.includes('should set deviceType'), '低质量拓扑必须提示缺少 deviceType');
+  assert(warnings.includes('edges should omit labels'), '低质量拓扑必须提示边标签问题');
+  assert(warnings.includes('straight lines'), '低质量拓扑必须提示正交线问题');
+  assert(warnings.includes('omit arrowheads'), '低质量拓扑必须提示箭头问题');
+}
+
 async function testArchitecture() {
   const file = out('architecture.drawio');
   await drawio.generate({
@@ -309,6 +338,7 @@ async function testExcalidraw() {
 
 async function main() {
   await testNetworkTopology();
+  testNetworkTopologyQualityWarnings();
   await testArchitecture();
   await testSwimlane();
   await testFlowchart();

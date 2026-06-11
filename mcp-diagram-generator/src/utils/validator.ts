@@ -14,8 +14,9 @@ export class SchemaValidator {
     this.spec = JSON.parse(fs.readFileSync(schemaPath, 'utf-8'));
   }
 
-  validate(data: unknown): { valid: boolean; errors?: string[] } {
+  validate(data: unknown): { valid: boolean; errors?: string[]; warnings?: string[] } {
     const errors: string[] = [];
+    const warnings: string[] = [];
 
     if (typeof data !== 'object' || data === null) {
       return { valid: false, errors: ['Root must be an object'] };
@@ -54,6 +55,8 @@ export class SchemaValidator {
       this.validateFlowchart(spec as any, edgeElements, errors);
     }
 
+    this.collectQualityWarnings(spec as any, edgeElements, warnings);
+
     const validateContainer = (container: any, depth = 0): void => {
       if (depth > 10) {
         errors.push('Container nesting too deep (>10 levels)');
@@ -79,7 +82,8 @@ export class SchemaValidator {
 
     return {
       valid: errors.length === 0,
-      errors: errors.length > 0 ? errors : undefined
+      errors: errors.length > 0 ? errors : undefined,
+      warnings: warnings.length > 0 ? warnings : undefined
     };
   }
 
@@ -210,6 +214,107 @@ export class SchemaValidator {
     }
 
     return nodes;
+  }
+
+  private collectContainers(elements: any[]): any[] {
+    const containers: any[] = [];
+
+    for (const element of elements) {
+      if (element.type === 'container') {
+        containers.push(element);
+        if (element.children) {
+          containers.push(...this.collectContainers(element.children));
+        }
+      }
+    }
+
+    return containers;
+  }
+
+  private collectQualityWarnings(spec: any, edges: any[], warnings: string[]): void {
+    if (spec.format !== 'drawio' || !this.isNetworkTopology(spec)) {
+      return;
+    }
+
+    const containers = this.collectContainers(spec.elements || []);
+    const nodes = this.collectNodes(spec.elements || []);
+    const rootVisualElements = (spec.elements || []).filter((element: any) => element.type !== 'edge');
+
+    if (!containers.some(container => container.level === 'datacenter')) {
+      warnings.push('Quality: network topology should include datacenter containers');
+    }
+
+    if (!containers.some(container => container.level === 'zone')) {
+      warnings.push('Quality: network topology should include zone containers');
+    }
+
+    if (rootVisualElements.length > 4 && containers.length === 0) {
+      warnings.push('Quality: too many devices are attached directly to the root; use environment -> datacenter -> zone containers');
+    }
+
+    for (const node of nodes) {
+      if (!node.geometry) {
+        warnings.push(`Quality: network node should use explicit geometry: ${node.id}`);
+      }
+
+      if (node.style?.fontSize !== undefined && node.style.fontSize < 18) {
+        warnings.push(`Quality: network node font is likely too small: ${node.id}`);
+      }
+
+      if (this.nameImpliesKnownDeviceType(node.name) && !node.deviceType) {
+        warnings.push(`Quality: network node should set deviceType: ${node.id}`);
+      }
+    }
+
+    for (const container of containers) {
+      if (!container.geometry) {
+        warnings.push(`Quality: network container should use explicit geometry: ${container.id}`);
+      }
+    }
+
+    for (const edge of edges) {
+      if (edge.label) {
+        warnings.push(`Quality: network topology edges should omit labels by default: ${edge.id || `${edge.source}->${edge.target}`}`);
+      }
+
+      if (edge.style?.lineStyle === 'orthogonal') {
+        warnings.push(`Quality: network topology edges should use straight lines by default: ${edge.id || `${edge.source}->${edge.target}`}`);
+      }
+
+      if (edge.style?.endArrow && edge.style.endArrow !== 'none') {
+        warnings.push(`Quality: network topology edges should omit arrowheads by default: ${edge.id || `${edge.source}->${edge.target}`}`);
+      }
+    }
+  }
+
+  private isNetworkTopology(spec: any): boolean {
+    const containers = this.collectContainers(spec.elements || []);
+    const nodes = this.collectNodes(spec.elements || []);
+
+    if (containers.some(container => ['environment', 'datacenter', 'zone'].includes(container.level))) {
+      return true;
+    }
+
+    return nodes.some(node => {
+      const deviceType = String(node.deviceType || '').toLowerCase();
+      return [
+        'router',
+        'switch',
+        'accessswitch',
+        'coreswitch',
+        'firewall',
+        'loadbalancer',
+        'sslgateway',
+        'proxy',
+        'cloud',
+        'externalsystem'
+      ].includes(deviceType) || this.nameImpliesKnownDeviceType(node.name);
+    });
+  }
+
+  private nameImpliesKnownDeviceType(name: unknown): boolean {
+    if (typeof name !== 'string') return false;
+    return /路由器|交换机|防火墙|F5|负载均衡|SSL|网关|Nginx|代理|专有云|云|监管|中心|router|switch|firewall|load balancer|gateway|proxy|cloud/i.test(name);
   }
 
   private validateStringArray(value: unknown, message: string, errors: string[]): void {

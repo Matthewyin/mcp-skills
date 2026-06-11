@@ -245,7 +245,7 @@ class DiagramServer {
         content: [
           {
             type: 'text',
-            text: `Diagram generated successfully: ${finalPath}`
+            text: `Diagram generated successfully: ${finalPath}${this.formatWarnings(validation.warnings)}`
           }
         ]
       };
@@ -270,7 +270,7 @@ class DiagramServer {
         content: [
           {
             type: 'text',
-            text: 'Diagram specification is valid'
+            text: `Diagram specification is valid${this.formatWarnings(validation.warnings)}`
           }
         ]
       };
@@ -285,6 +285,14 @@ class DiagramServer {
         isError: true
       };
     }
+  }
+
+  private formatWarnings(warnings?: string[]): string {
+    if (!warnings || warnings.length === 0) {
+      return '';
+    }
+
+    return `\n\nQuality warnings:\n${warnings.join('\n')}`;
   }
 
   private async handleInitConfig(args: { paths?: { drawio?: string; mermaid?: string; excalidraw?: string } }): Promise<any> {
